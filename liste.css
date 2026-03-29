@@ -116,3 +116,22 @@ section p{
 .project-tittle{
     padding:20px;
 }
+
+
+.project-tittle h3{
+    margin-bottom:6px;
+    font-size:1.1rem;
+}
+
+.project-tittle p{
+    font-size:0.85rem;
+    color:var(--muted);
+}
+
+/* ACTIONS */
+.project-actions{
+    display:flex;
+    justify-content:space-between;
+    padding:15px 20px;
+    border-top:1px solid var(--border);
+}

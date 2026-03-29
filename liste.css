@@ -169,3 +169,11 @@ section p{
     background:var(--danger);
     color:white;
 }
+
+/* FOOTER */
+footer{
+    margin-top:60px;
+    text-align:center;
+    font-size:0.8rem;
+    color:var(--muted);
+}

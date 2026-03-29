@@ -23,3 +23,27 @@ body{
     color:var(--text);
     min-height:100vh;
 }
+
+/* CONTAINER */
+.container{
+    width:90%;
+    max-width:1200px;
+    margin:auto;
+    padding:40px 0;
+}
+
+/* HEADER */
+header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:40px;
+}
+
+header h1{
+    font-size:1.8rem;
+    letter-spacing:1px;
+    background:linear-gradient(90deg,var(--primary),var(--accent));
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}

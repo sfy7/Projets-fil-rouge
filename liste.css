@@ -152,3 +152,20 @@ section p{
     background:var(--primary);
     color:#000;
 }
+
+/* DELETE BUTTON */
+.btn-delete{
+    background:transparent;
+    border:1px solid var(--danger);
+    color:var(--danger);
+    padding:6px 14px;
+    border-radius:20px;
+    cursor:pointer;
+    font-size:0.8rem;
+    transition:0.3s;
+}
+
+.btn-delete:hover{
+    background:var(--danger);
+    color:white;
+}

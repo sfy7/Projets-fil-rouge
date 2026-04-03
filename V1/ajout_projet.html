@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajout de projets</title>
+    <link rel="stylesheet" href="ajout_projet.css">
+</head>
+<body>
+    <header class="navbar">
+		<div class="logo">fullstack_portfolio</div>
+			<div class="nav-action">
+				<a href="Liste_projets.html">Mes Projets</a>
+				<button class="btn-ajout">+ Ajouter</button>
+			</div>
+	</header>
+    <div class="containes">
+		<a href="Liste_projets.html" class="back">← Retour à la liste des projets</a>
+		<h1>Ajouter un projet</h1>
+		<p class="subtitle">Documentez une nouvelle réalisation dans votre portfolio.</p>
+	</div>
+
+    <div class="container">
+			<div class="card">
+				<form >
+					<label>Libellé du projet *</label>
+					<input type="text" palceholder="EX : Plateforme E-commerce Full Stack" required>
+					<label>Description *</label>
+					<textarea placeholder="Décrivez votre projet : objectifs, fonctionnalités, défis relevés..." maxlength="1000"></textarea>
+					<span class="counter">0/1000</span>
+					<label for="enctype = multipart/form-data">Image</label>
+					<input type="file" placeholder="projet.jpg">
+					<label>Technologies utilisées</label>
+					<div class="tech-input">
+						<input type="text" placeholder="Ex: React, Node.js, Docker...">
+						<button type="button" class="btnim">Ajouter</button>
+					</div>
+					<div>
+						 <p class="subtitle">Appuyez sur Entrez ou cliquez sur « Ajouter » pour valider chaque technologie.</p>
+					</div>
+					<div class="form-actions">
+						<button href="Liste_projets.html" class="btn-annul">← Annuler</button>
+						<button type="submit" class="btn-ajout">Enregistrer le projet</button>
+					</div>
+
+				</form>
+
+			</div>
+            <footer
+                style="margin-top: 50px; text-align: center; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                © 2026 fullStack_portfolio
+            </footer>
+		</div>
+</body>
+</html>

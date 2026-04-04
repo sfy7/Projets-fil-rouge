@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FullStack_Portfolio</title>
+    <link rel="stylesheet" href="../src/output.css"/>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-slate-900 to-teal-800 text-white font-sans">
+     <!--Entete du site-->
+    <header>
+      <nav class="relative flex items-center px-10 py-6 bg-slate-900 ">
+
+        <!--Logo-->
+        <a href="../index.html" class="flex items-center gap-1">
+            <img src="../images/Logo.png" alt="Logo de Safiétou Sy" class="h-25 w-auto">
+            <p class="text-2xl text-white font-semibold">FullStack Portfolio</p>
+        </a>
+
+        <!--Menu-->
+        <div class="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-4" >
+          <a href="../index.html" class="px-8 py-4 bg-gray-800 rounded-full font-display text-lg text-white font-medium hover:bg-teal-700/22 hover:text-teal-400 transition-all duration-300">Accueil</a>
+          <a href="projets.html" class="px-8 py-4 bg-teal-400 rounded-full font-display text-lg text-gray-900 font-medium transition-all duration-300 shadow-lg shadow-teal-400/75">Mes Projets</a>
+        </div>
+        <div class="ml-auto">
+          <a href="contact.html" class="px-8 py-4 bg-gray-800 rounded-full font-display text-lg text-white font-medium hover:bg-teal-700/22 hover:text-teal-400 transition-all duration-300">Contact</a>
+        </div>
+      </nav>
+    </header>
+
+    <!--Contenu Principal-->
+    <main class="px-10 py-12">
+        <!-- Titre -->
+        <section class="text-center mb-12">
+            <div class="flex justify-center text-center gap-3">
+                <h2 class="text-5xl font-bold mb-4">Projets</h2>
+                <h2 class="text-5xl font-bold mb-4 text-teal-400">Réalisés</h2>
+            </div>
+            <p class="text-lg text-gray-300 max-w-2xl mx-auto">Voici une sélection de projets réalisés lors de mes expériences en développement fullstack et mes réalisations personnelles.</p>
+        </section>
+
+        <!-- Grille des projets -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-8xl">
+            
+            <!-- Projet1 -->
+            <article class="group bg-gray-800 rounded-xl overflow-hidden border border-transparent hover:border-teal-400 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=500&q=80"
+                    alt="Aperçu Site E-commerce" class="w-full h-80 object-cover transition-transform duration-300 group-hover:scale-110">
+                    <div class="p-4">
+                        <h3 class="text-2xl font-semibold mb-1">Application E-commerce</h3>
+                        <p class="text-gray-400 text-base mb-3">Ajouté le 5 octobre 2023</p>
+                    </div>
+                <div class="m-4 flex gap-2">
+                    <a href="details_proj1.html" class="px-4 py-2 bg-teal-400 text-gray-900 rounded-lg font-medium hover:shadow-xl hover:shadow-teal-400/75 transition duration-300">Voir détails</a>
+                    <button class="px-4 py-2 border border-red-600 text-red-600 rounded-lg font-medium hover:bg-red-700 hover:text-white transition duration-300">Supprimer</button>
+                </div>
+            </article>
+            
+            <!-- Projet 2 -->
+            <article class=" group bg-gray-800 rounded-xl overflow-hidden border border-transparent hover:border-teal-400 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <img src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=500&q=80"
+                    alt="Aperçu App Mobile" class="w-full h-80 object-cover transition-transform duration-300 group-hover:scale-110">
+                    <div class="p-4">
+                        <h3 class="text-2xl font-semibold mb-1">Application mobile de santé</h3>
+                        <p class="text-gray-400 text-base mb-3">Ajouté le 15 septembre 2024</p>
+                    </div>
+                <div class="m-4 flex gap-2">
+                    <a href="details_proj2.html" class="px-4 py-2 bg-teal-400 text-gray-900 rounded-lg font-medium hover:shadow-xl hover:shadow-teal-400/75 transition duration-300" >Voir détails</a>
+                    <button class="px-4 py-2 border border-red-600 text-red-600 rounded-lg font-medium hover:bg-red-700 hover:text-white transition duration-300">Supprimer</button>
+                </div>
+            </article>
+
+            <!-- Projet 3 -->
+            <article class="group bg-gray-800 rounded-xl overflow-hidden border border-transparent hover:border-teal-400 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=500&q=80"
+                    alt="Aperçu Dashboard" class="w-full h-80 object-cover transition-transform duration-300 group-hover:scale-110">
+                    <div class="p-4">
+                        <h3 class="text-2xl font-semibold mb-1">Dashboard Analytics Temps Réel</h3>
+                        <p class="text-gray-400 text-base mb-3">Ajouté le 10 novembre 2025</p>
+                    </div>
+                <div class="m-4 flex gap-2">
+                    <a href="details_proj3.html" class="px-4 py-2 bg-teal-400 text-gray-900 rounded-lg font-medium hover:shadow-xl hover:shadow-teal-400/75 transition duration-300">Voir détails</a>
+                    <button class="px-4 py-2 border border-red-600 text-red-600 rounded-lg font-medium hover:bg-red-700 hover:text-white transition duration-300">Supprimer</button>
+                </div>
+            </article>
+
+            <!-- Projet 4 -->
+            <article class="group bg-gray-800 rounded-xl overflow-hidden border border-transparent hover:border-teal-400 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <img src="https://fr.organilog.com/wp-content/uploads/2022/11/logiciel-de-pointage-qr-code-equipement.webp"
+                        alt="Aperçu App Mobile" class="w-full h-80 object-cover transition-transform duration-300 group-hover:scale-110">
+                    <div class="p-4">
+                        <h3 class="text-2xl font-semibold mb-1">Application de gestion de pointage</h3>
+                        <p class="text-gray-400 text-base mb-3">Ajouté le 18 janvier 2024</p>
+                    </div>
+                <div class="m-4 flex gap-2">
+                    <a href="details_proj4.html" class="px-4 py-2 bg-teal-400 text-gray-900 rounded-lg font-medium hover:shadow-xl hover:shadow-teal-400/75 transition duration-300">Voir détails</a>
+                    <button class="px-4 py-2 border border-red-600 text-red-600 rounded-lg font-medium hover:bg-red-700 hover:text-white transition duration-300">Supprimer</button>
+                </div>
+            </article>
+
+            <!-- AJouter Projet-->
+            <a href="ajouter_projet.html">
+                <article class="flex flex-col items-center justify-center bg-gray-800 rounded-xl border-3 border-dashed border-gray-600 h-90 hover:border-teal-400 hover:bg-teal-700/22 transition-all duration-300 cursor-pointer">
+
+                    <div class="flex items-center justify-center w-20 h-20 rounded-full bg-gray-700 text-5xl font-bold text-teal-400 mb-4">
+                        +
+                    </div>
+                    <p class="text-base text-gray-300 font-medium">Ajouter un projet</p>
+                </article>
+            </a>
+        </div>
+    </main>
+
+    <!--Pied de page-->
+    <footer class="bg-slate-800 text-gray-400 text-center px-10 py-12">
+      <p>© 2026 - Portfolio Safietou Sy. Tous droits réservés.</p>
+    </footer>
+</body>
+</html>

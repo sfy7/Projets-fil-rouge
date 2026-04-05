@@ -27,5 +27,45 @@
         </div>
       </nav>
     </header>
+    
+    <!-- Contenu Principal -->
+    <main class="px-10 py-12 max-w-6xl mx-auto">
+
+        <!-- Titre -->
+        <section class="flex justify-center text-center gap-5 mb-12">
+            <h1 class="text-5xl font-bold mb-4">Application</h1>
+            <h1 class="text-teal-400 text-5xl font-bold mb-4">E-commerce</h1>
+        </section>
+
+        <!-- Contenu Projet -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
+
+            <!-- Image principale -->
+            <div class="overflow-hidden rounded-xl shadow-lg">
+                <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80" 
+                     alt="Aperçu Projet" class="w-full h-80 object-cover transition-transform duration-300 hover:scale-105">
+            </div>
+
+            <!-- Description et Technologies -->
+            <div class="flex flex-col justify-between">
+                <div class="mb-6">
+                    <h2 class="text-3xl font-semibold mb-4">Description</h2>
+                    <p class="text-xl text-gray-300 text-justify mb-4 leading-relaxed">
+                        Développement d'une plateforme e-commerce complète avec gestion des produits, panier d'achat, paiements en ligne et tableau de bord administrateur. L'application supporte plusieurs devises et langues, intègre un système de recommandation basé sur l'IA et offre une expérience utilisateur fluide sur tous les appareils.
+                    </p>
+
+                    <h2 class="text-2xl font-semibold mb-2">Technologies Utilisées</h2>
+                    <ul class="list-disc list-inside text-xl text-pink-500 mb-4">
+                        <li>React</li>
+                        <li>Node.js</li>
+                        <li>PostgresSQL</li>
+                        <li>Stripe API</li>
+                        <li>Docker</li>
+                        <li>Redis</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
 </body>
 </html>

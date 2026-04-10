@@ -114,6 +114,29 @@ async function envoyerProjet(libelle, description, technologies, image, date, ev
   }
 }
 
+// ============================================================
+// DETAILLER UN PROJET
+// ============================================================
+function detaillerProjet(id) {
+  // Comparaison sans === strict pour gérer string et number
+  const projet = projets.find(p => p.id == id);
+  if (!projet) return;
 
+  document.getElementById("modal-image").src               = projet.image;
+  document.getElementById("modal-image").alt               = projet.libelle;
+  document.getElementById("modal-titre").textContent       = projet.libelle;
+  document.getElementById("modal-date").textContent        = projet.date;
+  document.getElementById("modal-description").textContent = projet.description;
+
+  const ul = document.getElementById("modal-technologies");
+  ul.innerHTML = "";
+  projet.technologies.split(",").forEach(tech => {
+    const li = document.createElement("li");
+    li.textContent = tech.trim();
+    ul.appendChild(li);
+  });
+
+  document.getElementById("modal-dynamique").classList.remove("hidden");
+}
 // Lancement au démarrage
 chargerProjets();

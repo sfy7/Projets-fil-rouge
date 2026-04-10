@@ -48,5 +48,72 @@ function creerProjet(id, libelle, image) {
 }
 
 
+// ============================================================
+// AJOUTER UN PROJET — POST
+// ============================================================
+async function ajouterProjet(event) {
+  event.preventDefault();
+
+  const libelle      = document.getElementById("input-libelle").value.trim();
+  const description  = document.getElementById("input-description").value.trim();
+  const technologies = document.getElementById("input-technologies").value.trim();
+  const imageUrl     = document.getElementById("input-image-url").value.trim();
+  const fichier      = document.getElementById("imageUpload").files[0];
+  const date         = "Ajouté le " + new Date().toLocaleDateString("fr-FR", {
+    day: "numeric", month: "long", year: "numeric"
+  });
+
+  if (!libelle || !description || !technologies) {
+    alert("Veuillez remplir tous les champs obligatoires.");
+    return;
+  }
+
+  // Lire l'image choisie depuis le fichier local
+  if (fichier) {
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      const image = e.target.result;
+      await envoyerProjet(libelle, description, technologies, image, date, event);
+    };
+    reader.readAsDataURL(fichier);
+  } else {
+    const image = imageUrl || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=500&q=80";
+    await envoyerProjet(libelle, description, technologies, image, date, event);
+  }
+}
+
+// Afficher le nom du fichier image choisi
+document.getElementById("imageUpload").addEventListener("change", function () {
+  const input = document.getElementById("input-filename");
+  input.value = this.files[0] ? this.files[0].name : "";
+});
+
+// Envoyer les données du projet au serveur
+
+async function envoyerProjet(libelle, description, technologies, image, date, event) {
+  const nouveauProjet = { libelle, description, technologies, image, date };
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(nouveauProjet)
+    });
+    const projetSauvegarde = await response.json();
+
+    projets.unshift(projetSauvegarde);
+    creerProjet(projetSauvegarde.id, projetSauvegarde.libelle, projetSauvegarde.image);
+
+    event.target.reset();
+    document.getElementById("input-filename").value = ""; // Vider le champ nom du fichier
+    window.location.href = "#projets";
+
+  } catch (error) {
+    console.error("Erreur ajout projet :", error);
+    alert("Erreur lors de l'ajout. Vérifiez que json-server est lancé.");
+  }
+}
+
+
 // Lancement au démarrage
 chargerProjets();

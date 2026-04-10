@@ -114,6 +114,24 @@ async function envoyerProjet(libelle, description, technologies, image, date, ev
   }
 }
 
+
+// ============================================================
+// ANNULER / RESET FORMULAIRE
+// ============================================================
+function annulerFormulaire() {
+  // Réinitialiser tous les champs texte
+  document.getElementById("input-libelle").value = "";
+  document.getElementById("input-description").value = "";
+  document.getElementById("input-technologies").value = "";
+  document.getElementById("input-image-url").value = "";
+
+  // Réinitialiser le champ fichier
+  document.getElementById("imageUpload").value = "";
+
+  // Réinitialiser le champ affichant le nom du fichier
+  document.getElementById("input-filename").value = "";
+}
+
 // ============================================================
 // DETAILLER UN PROJET
 // ============================================================

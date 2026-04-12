@@ -7,7 +7,7 @@ Portfolio personnel, présentant des projets réalisés avec la possibilité d'e
 ## 📁 Arborescence du projet
 
 ```
-Portfolio_Safietou/
+Projets-fil-rouge/
 ├── images/
 │   └── logo.png
 ├── node_modules/           # Dépendances Node.js (généré automatiquement)
@@ -60,7 +60,7 @@ Portfolio_Safietou/
 ### 1. Cloner le projet
 
 ```bash
-git clone https://github.com/sfy7/Portfolio_Safietou.git
+git https://github.com/sfy7/Projets-fil-rouge.git
 cd Portfolio_Safietou/V3
 ```
 

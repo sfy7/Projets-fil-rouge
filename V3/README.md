@@ -73,6 +73,7 @@ npm install -g json-server
 ```
 
 > Si vous préférez une installation locale (sans `-g`) :
+>
 > ```bash
 > npm install json-server
 > ```
@@ -92,7 +93,7 @@ http://localhost:3000/projets
 ```
 
 > Vous devriez voir dans le terminal :
-> ```
+> ```bash
 > Resources
 > http://localhost:3000/projets
 >

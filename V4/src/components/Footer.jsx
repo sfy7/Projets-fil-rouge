@@ -6,7 +6,7 @@ import React from 'react'
 // Données des réseaux sociaux (tableau pour faciliter l'ajout/suppression)
 const reseaux = [
   { href: 'https://www.linkedin.com/in/safi3', icon: 'fab fa-linkedin', label: 'LinkedIn' },
-  { href: 'https://github.com/sfy7/Portfolio_Safietou/tree/main/V3', icon: 'fab fa-github', label: 'GitHub' },
+  { href: 'https://github.com/sfy7/Projets-fil-rouge/tree/main/V4', icon: 'fab fa-github', label: 'GitHub' },
   { href: '#', icon: 'fab fa-facebook', label: 'Facebook' },
   { href: 'https://wa.me/221772975658', icon: 'fab fa-whatsapp', label: 'WhatsApp' },
   { href: '#', icon: 'fab fa-instagram', label: 'Instagram' },

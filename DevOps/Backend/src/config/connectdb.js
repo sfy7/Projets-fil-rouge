@@ -2,6 +2,7 @@
 // Module de connexion à MongoDB via Mongoose
 
 const mongoose = require('mongoose');
+const dns = require('dns');
 
 /**
  * Connexion à MongoDB
@@ -10,7 +11,18 @@ const mongoose = require('mongoose');
  */
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
+    let conn;
+
+    try {
+      conn = await mongoose.connect(process.env.MONGO_URI);
+    } catch (error) {
+      if (error.message && error.message.includes('querySrv ECONNREFUSED')) {
+        dns.setServers(['8.8.8.8', '1.1.1.1']);
+        conn = await mongoose.connect(process.env.MONGO_URI);
+      } else {
+        throw error;
+      }
+    }
 
     console.log(`✅ MongoDB connecté : ${conn.connection.host}`);
   } catch (error) {

@@ -2,7 +2,9 @@
 // Toutes les requêtes HTTP vers l'API passent par ce fichier
 
 // URL de base du backend Express (port 5000)
-const BASE_URL = 'http://localhost:5000/api/projets'
+//const BASE_URL = 'http://localhost:5000/api/projets'
+
+const BASE_URL = '/api/projets'
 
 const jsonHeaders = {
   'Content-Type': 'application/json',

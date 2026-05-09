@@ -1,0 +1,70 @@
+services:
+  # service1 : Base de données mongodb
+  mongo:
+    image: mongo:7
+    container_name: mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: portfolio
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # service2 : Backend Express
+  backend:
+    build: ./Backend
+    image: portfolio-backend
+    container_name: backend
+    restart: unless-stopped
+    environment:
+      PORT: ${PORT}
+      NODE_ENV: ${NODE_ENV}
+      MONGO_URI: ${MONGO_URI}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/projets"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # service3 : Frontend React
+  frontend:
+    build: ./Frontend
+    image: portfolio-frontend
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+# Réseau personnalisé — DNS intégré, isolé
+networks:
+  app-network:
+    driver: bridge
+
+# Volume nommé — persiste après 'docker compose down'
+volumes:
+  mongo_data:

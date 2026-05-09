@@ -54,7 +54,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:80"]
+      test: ["CMD-SHELL", "pidof nginx || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3

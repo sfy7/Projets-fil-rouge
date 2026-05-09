@@ -1,0 +1,4 @@
+node_modules 
+build # Régénéré par npm run build
+*.md # Documentation 
+

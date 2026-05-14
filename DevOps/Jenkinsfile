@@ -41,7 +41,7 @@ pipeline {
         // Étape 4 : Démarrage des conteneurs avec Docker Compose
         stage('Start Containers') {
             steps {
-                dir('DevOps/docker-compose.yaml'){
+                dir('DevOps') {   // ← le dossier qui CONTIENT docker-compose.yaml
                     // Arrête et supprime les anciens conteneurs (si existants)
                     sh 'docker compose down'
 

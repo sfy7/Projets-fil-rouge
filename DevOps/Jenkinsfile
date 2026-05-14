@@ -41,12 +41,18 @@ pipeline {
         // Étape 4 : Démarrage des conteneurs avec Docker Compose
         stage('Start Containers') {
             steps {
-                dir('DevOps') {   // ← le dossier qui CONTIENT docker-compose.yaml
-                    // Arrête et supprime les anciens conteneurs (si existants)
-                    sh 'docker compose down'
-
-                    // Reconstruit et démarre tous les services en mode détaché
-                    sh 'docker compose up -d'
+                // Récupère le fichier .env stocké dans les credentials Jenkins
+                withCredentials([file(credentialsId: 'portfolio-env', variable: 'ENV_FILE')]) {
+                    dir('DevOps') {   // ← le dossier qui CONTIENT docker-compose.yaml
+                        // Copie le .env secret dans le dossier DevOps
+                        sh 'cp $ENV_FILE .env'
+                        // Arrête les anciens conteneurs
+                        sh 'docker compose down'
+                        // Démarre tous les services (mongo + backend + frontend)
+                        sh 'docker compose --env-file .env up -d'
+                        // Supprime le .env pour ne pas le laisser sur le serveur
+                        sh 'rm -f .env'
+                    }
                 }
             }
         }

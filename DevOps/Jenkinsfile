@@ -46,7 +46,7 @@ pipeline {
                     sh 'docker compose down'
 
                     // Reconstruit et démarre tous les services en mode détaché
-                    sh 'docker compose up -d --build'
+                    sh 'docker compose up -d'
                 }
             }
         }

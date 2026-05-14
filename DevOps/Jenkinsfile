@@ -15,7 +15,7 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 git branch: 'main',
-                    credentialsId: 'github-creds',
+                    credentialsId: 'github_creds',
                     url: 'https://github.com/sfy7/Projets-fil-rouge.git'
             }
         }
@@ -23,7 +23,7 @@ pipeline {
         // Étape 2 : Construction de l'image Docker du backend
         stage('Build Backend') {
             steps {
-                dir('Backend') {
+                dir('DevOps/Backend') {
                     sh 'docker build -t $BACKEND_IMAGE .'
                 }
             }
@@ -32,7 +32,7 @@ pipeline {
         // Étape 3 : Construction de l'image Docker du frontend
         stage('Build Frontend') {
             steps {
-                dir('Frontend') {
+                dir('DevOps/Frontend') {
                     sh 'docker build -t $FRONTEND_IMAGE .'
                 }
             }
@@ -41,11 +41,13 @@ pipeline {
         // Étape 4 : Démarrage des conteneurs avec Docker Compose
         stage('Start Containers') {
             steps {
-                // Arrête et supprime les anciens conteneurs (si existants)
-                sh 'docker compose down'
+                dir('DevOps/docker-compose.yaml'){
+                    // Arrête et supprime les anciens conteneurs (si existants)
+                    sh 'docker compose down'
 
-                // Reconstruit et démarre tous les services en mode détaché
-                sh 'docker compose up -d --build'
+                    // Reconstruit et démarre tous les services en mode détaché
+                    sh 'docker compose up -d --build'
+                }
             }
         }
 

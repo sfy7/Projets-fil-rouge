@@ -67,18 +67,54 @@ pipeline {
 
     // Actions exécutées après l'exécution du pipeline
     post {
+
         success {
             echo 'Déploiement réussi ✅'
 
             emailext (
-                subject: "SUCCESS: Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                subject: "✅ SUCCESS - ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
                 body: """
-                    ✔️ Le pipeline a réussi !
+    Bonjour,
 
-                    Job: ${env.JOB_NAME}
-                    Build: #${env.BUILD_NUMBER}
+    Le pipeline Jenkins s'est exécuté avec succès. 🎉
 
-                    ✔️ Backend + Frontend déployés avec succès
+    ==================================================
+    📌 DÉTAILS DU BUILD
+    ==================================================
+
+    • Projet       : ${env.JOB_NAME}
+    • Build        : #${env.BUILD_NUMBER}
+    • Statut       : SUCCESS ✅
+    • Date         : ${new Date()}
+    • Serveur      : Jenkins CI/CD
+
+    ==================================================
+    🚀 ÉTAPES EXÉCUTÉES
+    ==================================================
+
+    ✅ Clonage du dépôt GitHub
+    ✅ Build Docker du Backend
+    ✅ Build Docker du Frontend
+    ✅ Démarrage des conteneurs Docker Compose
+    ✅ Vérification des conteneurs
+
+    ==================================================
+    🐳 SERVICES DÉPLOYÉS
+    ==================================================
+
+    • MongoDB
+    • Backend API
+    • Frontend Web
+
+    ==================================================
+    🎯 RÉSULTAT FINAL
+    ==================================================
+
+    ✔️ Le backend et le frontend ont été déployés avec succès.
+    ✔️ Les conteneurs Docker sont opérationnels.
+
+    Cordialement,
+    Jenkins CI/CD
                 """,
                 to: "safietou0218@gmail.com"
             )
@@ -88,14 +124,41 @@ pipeline {
             echo 'Pipeline échoué ❌'
 
             emailext (
-                subject: "FAILURE: Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                subject: "❌ FAILURE - ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
                 body: """
-                    ❌ Le pipeline a échoué !
+    Bonjour,
 
-                    Job: ${env.JOB_NAME}
-                    Build: #${env.BUILD_NUMBER}
+    Le pipeline Jenkins a échoué. ⚠️
 
-                    Vérifie les logs Jenkins pour plus de détails.
+    ==================================================
+    📌 DÉTAILS DU BUILD
+    ==================================================
+
+    • Projet       : ${env.JOB_NAME}
+    • Build        : #${env.BUILD_NUMBER}
+    • Statut       : FAILURE ❌
+    • Date         : ${new Date()}
+
+    ==================================================
+    🚨 ACTION REQUISE
+    ==================================================
+
+    Une ou plusieurs étapes du pipeline ont échoué.
+
+    Veuillez consulter les logs Jenkins pour identifier le problème :
+    ${env.BUILD_URL}
+
+    ==================================================
+    🔍 ÉTAPES POSSIBLEMENT IMPACTÉES
+    ==================================================
+
+    • Clonage du dépôt
+    • Build Docker
+    • Docker Compose
+    • Déploiement des conteneurs
+
+    Cordialement,
+    Jenkins CI/CD
                 """,
                 to: "safietou0218@gmail.com"
             )

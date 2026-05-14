@@ -74,47 +74,47 @@ pipeline {
             emailext (
                 subject: "✅ SUCCESS - ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
                 body: """
-    Bonjour,
+Bonjour,
 
-    Le pipeline Jenkins s'est exécuté avec succès. 🎉
+Le pipeline Jenkins s'est exécuté avec succès. 🎉
 
-    ==================================================
-    📌 DÉTAILS DU BUILD
-    ==================================================
+==================================================
+📌 DÉTAILS DU BUILD
+==================================================
 
-    • Projet       : ${env.JOB_NAME}
-    • Build        : #${env.BUILD_NUMBER}
-    • Statut       : SUCCESS ✅
-    • Date         : ${new Date()}
-    • Serveur      : Jenkins CI/CD
+• Projet       : ${env.JOB_NAME}
+• Build        : #${env.BUILD_NUMBER}
+• Statut       : SUCCESS ✅
+• Date         : ${new Date()}
+• Serveur      : Jenkins CI/CD
 
-    ==================================================
-    🚀 ÉTAPES EXÉCUTÉES
-    ==================================================
+==================================================
+🚀 ÉTAPES EXÉCUTÉES
+==================================================
 
-    ✅ Clonage du dépôt GitHub
-    ✅ Build Docker du Backend
-    ✅ Build Docker du Frontend
-    ✅ Démarrage des conteneurs Docker Compose
-    ✅ Vérification des conteneurs
+✅ Clonage du dépôt GitHub
+✅ Build Docker du Backend
+✅ Build Docker du Frontend
+✅ Démarrage des conteneurs Docker Compose
+✅ Vérification des conteneurs
 
-    ==================================================
-    🐳 SERVICES DÉPLOYÉS
-    ==================================================
+==================================================
+🐳 SERVICES DÉPLOYÉS
+==================================================
 
-    • MongoDB
-    • Backend API
-    • Frontend Web
+• MongoDB
+• Backend API
+• Frontend Web
 
-    ==================================================
-    🎯 RÉSULTAT FINAL
-    ==================================================
+==================================================
+🎯 RÉSULTAT FINAL
+==================================================
 
-    ✔️ Le backend et le frontend ont été déployés avec succès.
-    ✔️ Les conteneurs Docker sont opérationnels.
+✔️ Le backend et le frontend ont été déployés avec succès.
+✔️ Les conteneurs Docker sont opérationnels.
 
-    Cordialement,
-    Jenkins CI/CD
+Cordialement,
+Jenkins CI/CD
                 """,
                 to: "safietou0218@gmail.com"
             )
@@ -126,39 +126,39 @@ pipeline {
             emailext (
                 subject: "❌ FAILURE - ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
                 body: """
-    Bonjour,
+Bonjour,
 
-    Le pipeline Jenkins a échoué. ⚠️
+Le pipeline Jenkins a échoué. ⚠️
 
-    ==================================================
-    📌 DÉTAILS DU BUILD
-    ==================================================
+==================================================
+📌 DÉTAILS DU BUILD
+==================================================
 
-    • Projet       : ${env.JOB_NAME}
-    • Build        : #${env.BUILD_NUMBER}
-    • Statut       : FAILURE ❌
-    • Date         : ${new Date()}
+• Projet       : ${env.JOB_NAME}
+• Build        : #${env.BUILD_NUMBER}
+• Statut       : FAILURE ❌
+• Date         : ${new Date()}
 
-    ==================================================
-    🚨 ACTION REQUISE
-    ==================================================
+==================================================
+🚨 ACTION REQUISE
+==================================================
 
-    Une ou plusieurs étapes du pipeline ont échoué.
+Une ou plusieurs étapes du pipeline ont échoué.
 
-    Veuillez consulter les logs Jenkins pour identifier le problème :
-    ${env.BUILD_URL}
+Veuillez consulter les logs Jenkins pour identifier le problème :
+${env.BUILD_URL}
 
-    ==================================================
-    🔍 ÉTAPES POSSIBLEMENT IMPACTÉES
-    ==================================================
+==================================================
+🔍 ÉTAPES POSSIBLEMENT IMPACTÉES
+==================================================
 
-    • Clonage du dépôt
-    • Build Docker
-    • Docker Compose
-    • Déploiement des conteneurs
+• Clonage du dépôt
+• Build Docker
+• Docker Compose
+• Déploiement des conteneurs
 
-    Cordialement,
-    Jenkins CI/CD
+Cordialement,
+Jenkins CI/CD
                 """,
                 to: "safietou0218@gmail.com"
             )

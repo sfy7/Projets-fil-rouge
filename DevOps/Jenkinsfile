@@ -1,167 +1,151 @@
-pipeline {
+ pipeline {
+      agent any
 
-    // Agent Jenkins : ici "any" signifie que le pipeline peut s'exécuter sur n'importe quel agent disponible
-    agent any
+      environment {
+          BACKEND_IMAGE = "portfolio-backend"
+          FRONTEND_IMAGE = "portfolio-frontend"
+      }
 
-     // Variables globales utilisées dans tout le pipeline (images Docker)
-    environment {
-        BACKEND_IMAGE = "portfolio-backend"
-        FRONTEND_IMAGE = "portfolio-frontend"
-    }
+      stages {
+          stage('Clone Repository') {
+              steps {
+                  git branch: 'main',
+                      credentialsId: 'github_creds',
+                      url: 'https://github.com/sfy7/Projets-fil-rouge.git'
+              }
+          }
 
-    stages {
+          stage('Build Backend') {
+              steps {
+                  dir('DevOps/Backend') {
+                      sh 'docker build -t $BACKEND_IMAGE .'
+                  }
+              }
+          }
 
-        // Étape 1 : Récupération du code source depuis GitHub
-        stage('Clone Repository') {
-            steps {
-                git branch: 'main',
-                    credentialsId: 'github_creds',
-                    url: 'https://github.com/sfy7/Projets-fil-rouge.git'
-            }
-        }
+          stage('Build Frontend') {
+              steps {
+                  dir('DevOps/Frontend') {
+                      sh 'docker build -t $FRONTEND_IMAGE .'
+                  }
+              }
+          }
 
-        // Étape 2 : Construction de l'image Docker du backend
-        stage('Build Backend') {
-            steps {
-                dir('DevOps/Backend') {
-                    sh 'docker build -t $BACKEND_IMAGE .'
-                }
-            }
-        }
+          stage('Start Containers') {
+              steps {
+                  withCredentials([file(credentialsId: 'portfolio-env', variable: 'ENV_FILE')]) {
+                      dir('DevOps') {
+                          sh 'cp $ENV_FILE .env'
+                          sh 'docker compose down'
+                          sh 'docker compose --env-file .env up -d'
+                          sh 'rm -f .env'
+                      }
+                  }
+              }
+          }
 
-        // Étape 3 : Construction de l'image Docker du frontend
-        stage('Build Frontend') {
-            steps {
-                dir('DevOps/Frontend') {
-                    sh 'docker build -t $FRONTEND_IMAGE .'
-                }
-            }
-        }
+          stage('Verify Containers') {
+              steps {
+                  sh 'docker ps'
+              }
+          }
+      }
 
-        // Étape 4 : Démarrage des conteneurs avec Docker Compose
-        stage('Start Containers') {
-            steps {
-                // Récupère le fichier .env stocké dans les credentials Jenkins
-                withCredentials([file(credentialsId: 'portfolio-env', variable: 'ENV_FILE')]) {
-                    dir('DevOps') {   // ← le dossier qui CONTIENT docker-compose.yaml
-                        // Copie le .env secret dans le dossier DevOps
-                        sh 'cp $ENV_FILE .env'
-                        // Arrête les anciens conteneurs
-                        sh 'docker compose down'
-                        // Démarre tous les services (mongo + backend + frontend)
-                        sh 'docker compose --env-file .env up -d'
-                        // Supprime le .env pour ne pas le laisser sur le serveur
-                        sh 'rm -f .env'
-                    }
-                }
-            }
-        }
+      post {
+          success {
+              echo 'Deploiement reussi'
 
-        // Étape 5 : Vérification que les conteneurs sont bien en cours d'exécution
-        stage('Verify Containers') {
-            steps {
-                sh 'docker ps'
-            }
-        }
-    }
+              emailext (
+                  subject: "SUCCESS - ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
+                  mimeType: 'text/html',
+                  body: """
+                      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                          <div style="background: #1a365d; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                              <h1 style="color: #ffffff; margin: 0;">Pipeline REUSSI</h1>
+                          </div>
+                          <div style="background: #f7fafc; padding: 25px; border: 1px solid #e2e8f0;">
+                              <h2 style="color: #2d3748; border-bottom: 2px solid #38a169; padding-bottom: 10px;">DETAILS DU BUILD</h2>
+                              <table style="width: 100%; border-collapse: collapse;">
+                                  <tr><td style="padding: 8px; font-weight: bold;">Projet</td><td style="padding: 8px;">${env.JOB_NAME}</td></tr>
+                                  <tr style="background: #edf2f7;"><td style="padding: 8px; font-weight: bold;">Build</td><td style="padding: 8px;">#${env.BUILD_NUMBER}</td></tr>
+                                  <tr><td style="padding: 8px; font-weight: bold;">Statut</td><td style="padding: 8px; color: #38a169; font-weight: bold;">SUCCESS</td></tr>
+                                  <tr style="background: #edf2f7;"><td style="padding: 8px; font-weight: bold;">Serveur</td><td style="padding: 8px;">Jenkins CI/CD</td></tr>
+                              </table>
 
-    // Actions exécutées après l'exécution du pipeline
-    post {
+                              <h2 style="color: #2d3748; border-bottom: 2px solid #38a169; padding-bottom: 10px; margin-top: 25px;">ETAPES EXECUTEES</h2>
+                              <ul style="list-style: none; padding: 0;">
+                                  <li style="padding: 6px 0; color: #38a169;">&#10004; Clonage du depot GitHub</li>
+                                  <li style="padding: 6px 0; color: #38a169;">&#10004; Build Docker du Backend</li>
+                                  <li style="padding: 6px 0; color: #38a169;">&#10004; Build Docker du Frontend</li>
+                                  <li style="padding: 6px 0; color: #38a169;">&#10004; Demarrage des conteneurs Docker Compose</li>
+                                  <li style="padding: 6px 0; color: #38a169;">&#10004; Verification des conteneurs</li>
+                              </ul>
 
-        success {
-            echo 'Déploiement réussi ✅'
+                              <h2 style="color: #2d3748; border-bottom: 2px solid #38a169; padding-bottom: 10px; margin-top: 25px;">SERVICES DEPLOYES</h2>
+                              <table style="width: 100%; border-collapse: collapse;">
+                                  <tr style="background: #c6f6d5;"><td style="padding: 10px; font-weight: bold;">MongoDB</td><td style="padding: 10px;">Base de donnees</td></tr>
+                                  <tr style="background: #e6fffa;"><td style="padding: 10px; font-weight: bold;">Backend API</td><td style="padding: 10px;">Express.js</td></tr>
+                                  <tr style="background: #c6f6d5;"><td style="padding: 10px; font-weight: bold;">Frontend Web</td><td style="padding: 10px;">React</td></tr>
+                              </table>
 
-            emailext (
-                subject: "✅ SUCCESS - ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
-                body: """
-Bonjour,
+                              <div style="background: #c6f6d5; padding: 15px; border-radius: 8px; margin-top: 25px; text-align: center;">
+                                  <strong style="color: #22543d; font-size: 16px;">Le backend et le frontend sont deployes avec succes.</strong>
+                              </div>
+                          </div>
+                          <div style="background: #1a365d; padding: 15px; border-radius: 0 0 8px 8px; text-align: center;">
+                              <p style="color: #a0aec0; margin: 0; font-size: 12px;">Jenkins CI/CD - Pipeline Automatise</p>
+                          </div>
+                      </div>
+                  """,
+                  to: "safietou0218@gmail.com"
+              )
+          }
 
-Le pipeline Jenkins s'est exécuté avec succès. 🎉
+          failure {
+              echo 'Pipeline echoue'
 
-==================================================
-📌 DÉTAILS DU BUILD
-==================================================
+              emailext (
+                  subject: "FAILURE - ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
+                  mimeType: 'text/html',
+                  body: """
+                      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                          <div style="background: #742a2a; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+                              <h1 style="color: #ffffff; margin: 0;">Pipeline ECHOUE</h1>
+                          </div>
+                          <div style="background: #f7fafc; padding: 25px; border: 1px solid #e2e8f0;">
+                              <h2 style="color: #2d3748; border-bottom: 2px solid #e53e3e; padding-bottom: 10px;">DETAILS DU BUILD</h2>
+                              <table style="width: 100%; border-collapse: collapse;">
+                                  <tr><td style="padding: 8px; font-weight: bold;">Projet</td><td style="padding: 8px;">${env.JOB_NAME}</td></tr>
+                                  <tr style="background: #edf2f7;"><td style="padding: 8px; font-weight: bold;">Build</td><td style="padding: 8px;">#${env.BUILD_NUMBER}</td></tr>
+                                  <tr><td style="padding: 8px; font-weight: bold;">Statut</td><td style="padding: 8px; color: #e53e3e; font-weight: bold;">FAILURE</td></tr>
+                                  <tr style="background: #edf2f7;"><td style="padding: 8px; font-weight: bold;">Serveur</td><td style="padding: 8px;">Jenkins CI/CD</td></tr>
+                              </table>
 
-• Projet       : ${env.JOB_NAME}
-• Build        : #${env.BUILD_NUMBER}
-• Statut       : SUCCESS ✅
-• Date         : ${new Date()}
-• Serveur      : Jenkins CI/CD
+                              <div style="background: #fed7d7; padding: 15px; border-radius: 8px; margin-top: 25px; border-left: 4px solid #e53e3e;">
+                                  <strong style="color: #742a2a;">ACTION REQUISE</strong>
+                                  <p style="color: #2d3748; margin: 10px 0 0 0;">Une ou plusieurs etapes du pipeline ont echoue. Consultez les logs Jenkins pour identifier le probleme.</p>
+                              </div>
 
-==================================================
-🚀 ÉTAPES EXÉCUTÉES
-==================================================
+                              <h2 style="color: #2d3748; border-bottom: 2px solid #e53e3e; padding-bottom: 10px; margin-top: 25px;">ETAPES POSSIBLEMENT IMPACTEES</h2>
+                              <ul style="list-style: none; padding: 0;">
+                                  <li style="padding: 6px 0;">&#9888; Clonage du depot</li>
+                                  <li style="padding: 6px 0;">&#9888; Build Docker</li>
+                                  <li style="padding: 6px 0;">&#9888; Docker Compose</li>
+                                  <li style="padding: 6px 0;">&#9888; Deploiement des conteneurs</li>
+                              </ul>
 
-✅ Clonage du dépôt GitHub
-✅ Build Docker du Backend
-✅ Build Docker du Frontend
-✅ Démarrage des conteneurs Docker Compose
-✅ Vérification des conteneurs
-
-==================================================
-🐳 SERVICES DÉPLOYÉS
-==================================================
-
-• MongoDB
-• Backend API
-• Frontend Web
-
-==================================================
-🎯 RÉSULTAT FINAL
-==================================================
-
-✔️ Le backend et le frontend ont été déployés avec succès.
-✔️ Les conteneurs Docker sont opérationnels.
-
-Cordialement,
-Jenkins CI/CD
-                """,
-                to: "safietou0218@gmail.com"
-            )
-        }
-
-        failure {
-            echo 'Pipeline échoué ❌'
-
-            emailext (
-                subject: "❌ FAILURE - ${env.JOB_NAME} Build #${env.BUILD_NUMBER}",
-                body: """
-Bonjour,
-
-Le pipeline Jenkins a échoué. ⚠️
-
-==================================================
-📌 DÉTAILS DU BUILD
-==================================================
-
-• Projet       : ${env.JOB_NAME}
-• Build        : #${env.BUILD_NUMBER}
-• Statut       : FAILURE ❌
-• Date         : ${new Date()}
-
-==================================================
-🚨 ACTION REQUISE
-==================================================
-
-Une ou plusieurs étapes du pipeline ont échoué.
-
-Veuillez consulter les logs Jenkins pour identifier le problème :
-${env.BUILD_URL}
-
-==================================================
-🔍 ÉTAPES POSSIBLEMENT IMPACTÉES
-==================================================
-
-• Clonage du dépôt
-• Build Docker
-• Docker Compose
-• Déploiement des conteneurs
-
-Cordialement,
-Jenkins CI/CD
-                """,
-                to: "safietou0218@gmail.com"
-            )
-        }
-    }
-}
+                              <div style="text-align: center; margin-top: 20px;">
+                                  <a href="${env.BUILD_URL}" style="background: #e53e3e; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Voir les logs
+  Jenkins</a>
+                              </div>
+                          </div>
+                          <div style="background: #742a2a; padding: 15px; border-radius: 0 0 8px 8px; text-align: center;">
+                              <p style="color: #feb2b2; margin: 0; font-size: 12px;">Jenkins CI/CD - Pipeline Automatise</p>
+                          </div>
+                      </div>
+                  """,
+                  to: "safietou0218@gmail.com"
+              )
+          }
+      }
+  }

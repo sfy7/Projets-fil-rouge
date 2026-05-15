@@ -1,16 +1,15 @@
 pipeline {
-
     // Agent Jenkins : ici "any" signifie que le pipeline peut s'exécuter sur n'importe quel agent disponible
     agent any
 
-     // Variables globales utilisées dans tout le pipeline (images Docker)
+    // Variables globales utilisées dans tout le pipeline (images Docker)
     environment {
-        BACKEND_IMAGE = "portfolio-backend"
+        BACKEND_IMAGE  = "portfolio-backend"
         FRONTEND_IMAGE = "portfolio-frontend"
+        DOCKERHUB_USER = "ton_username_dockerhub"   // ← à remplacer
     }
 
     stages {
-
         // Étape 1 : Récupération du code source depuis GitHub
         stage('Clone Repository') {
             steps {
@@ -38,7 +37,41 @@ pipeline {
             }
         }
 
-        // Étape 4 : Démarrage des conteneurs avec Docker Compose
+        // Étape 4 : Push des images vers Docker Hub
+        stage('Push to Docker Hub') {
+            steps {
+                // 'dockerhub_creds' = ID du credential Jenkins (type Username/Password)
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub_creds',
+                    usernameVariable: 'DOCKHUB_USER',
+                    passwordVariable: 'DOCKHUB_PASS'
+                )]) {
+                    // Connexion à Docker Hub
+                    sh 'echo "$DOCKHUB_PASS" | docker login -u "$DOCKHUB_USER" --password-stdin'
+
+                    // Tag du backend avec :latest et :numéro de build
+                    sh 'docker tag $BACKEND_IMAGE $DOCKHUB_USER/$BACKEND_IMAGE:latest'
+                    sh 'docker tag $BACKEND_IMAGE $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}'
+
+                    // Push du backend vers Docker Hub
+                    sh 'docker push $DOCKHUB_USER/$BACKEND_IMAGE:latest'
+                    sh 'docker push $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}'
+
+                    // Tag du frontend avec :latest et :numéro de build
+                    sh 'docker tag $FRONTEND_IMAGE $DOCKHUB_USER/$FRONTEND_IMAGE:latest'
+                    sh 'docker tag $FRONTEND_IMAGE $DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}'
+
+                    // Push du frontend vers Docker Hub
+                    sh 'docker push $DOCKHUB_USER/$FRONTEND_IMAGE:latest'
+                    sh 'docker push $DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}'
+
+                    // Déconnexion pour ne pas laisser la session ouverte sur le serveur
+                    sh 'docker logout'
+                }
+            }
+        }
+
+        // Étape 5 : Démarrage des conteneurs avec Docker Compose
         stage('Start Containers') {
             steps {
                 // Récupère le fichier .env stocké dans les credentials Jenkins
@@ -57,7 +90,7 @@ pipeline {
             }
         }
 
-        // Étape 5 : Vérification que les conteneurs sont bien en cours d'exécution
+        // Étape 6 : Vérification que les conteneurs sont bien en cours d'exécution
         stage('Verify Containers') {
             steps {
                 sh 'docker ps'
@@ -69,32 +102,25 @@ pipeline {
     post {
         success {
             echo 'Déploiement réussi ✅'
-
             emailext (
                 subject: "SUCCESS: Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """
                     ✔️ Le pipeline a réussi !
-
                     Job: ${env.JOB_NAME}
                     Build: #${env.BUILD_NUMBER}
-
-                    ✔️ Backend + Frontend déployés avec succès
+                    ✔️ Backend + Frontend buildés, pushés sur Docker Hub et déployés avec succès
                 """,
                 to: "safietou0218@gmail.com"
             )
         }
-
         failure {
             echo 'Pipeline échoué ❌'
-
             emailext (
                 subject: "FAILURE: Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """
                     ❌ Le pipeline a échoué !
-
                     Job: ${env.JOB_NAME}
                     Build: #${env.BUILD_NUMBER}
-
                     Vérifie les logs Jenkins pour plus de détails.
                 """,
                 to: "safietou0218@gmail.com"

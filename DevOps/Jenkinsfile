@@ -45,7 +45,7 @@ pipeline {
                 withCredentials([file(credentialsId: 'portfolio-env', variable: 'ENV_FILE')]) {
                     dir('DevOps') {   // ← le dossier qui CONTIENT docker-compose.yaml
                         // Copie le .env secret dans le dossier DevOps
-                        sh 'cp $ENV_FILE .env'
+                        sh 'cp --remove-destination "$ENV_FILE" .env'
                         // Arrête les anciens conteneurs
                         sh 'docker compose down'
                         // Démarre tous les services (mongo + backend + frontend)

@@ -103,28 +103,29 @@ pipeline {
         success {
             echo 'Déploiement réussi ✅'
             emailext (
-                subject: "SUCCESS: Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-                    ✔️ Le pipeline a réussi !
-                    Job: ${env.JOB_NAME}
-                    Build: #${env.BUILD_NUMBER}
-                    ✔️ Backend + Frontend buildés, pushés sur Docker Hub et déployés avec succès
-                """,
+                subject: "✅ BUILD #${env.BUILD_NUMBER} — SUCCESS",
+                body: """✅ BUILD #${env.BUILD_NUMBER} — SUCCESS
+Job      : ${env.JOB_NAME}
+Duration : ${currentBuild.durationString}
+Images   : ${env.BACKEND_IMAGE}:${env.BUILD_NUMBER} / ${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER} pushed to Docker Hub
+Logs     : ${env.BUILD_URL}console""",
                 to: "safietou0218@gmail.com"
             )
         }
         failure {
             echo 'Pipeline échoué ❌'
             emailext (
-                subject: "FAILURE: Pipeline ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-                    ❌ Le pipeline a échoué !
-                    Job: ${env.JOB_NAME}
-                    Build: #${env.BUILD_NUMBER}
-                    Vérifie les logs Jenkins pour plus de détails.
-                """,
+                subject: "❌ BUILD #${env.BUILD_NUMBER} — FAILURE",
+                body: """❌ BUILD #${env.BUILD_NUMBER} — FAILURE
+The pipeline has failed. Please check the logs for more details.
+ 
+Job      : ${env.JOB_NAME}
+Duration : ${currentBuild.durationString}
+Stage    : ${env.STAGE_NAME}
+Logs     : ${env.BUILD_URL}console""",
                 to: "safietou0218@gmail.com"
             )
         }
     }
+        
 }

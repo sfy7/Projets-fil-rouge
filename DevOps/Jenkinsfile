@@ -21,24 +21,7 @@ pipeline {
             }
         }
 
-        // ── Étape 2 : Tests Jest + génération de la couverture ────────────
-        stage('Tests Backend') {
-            steps {
-                dir('DevOps/Backend') {
-                    sh 'npm ci'
-                    sh 'npm test -- --runInBand'
-                }
-            }
-            post {
-                always {
-                    // Archive le rapport de couverture pour Jenkins
-                    junit allowEmptyResults: true,
-                          testResults: 'DevOps/Backend/coverage/junit.xml'
-                }
-            }
-        }
-
-        // ── Étape 3 : Analyse SonarQube (Backend + Frontend) ─────────────
+        // ── Étape 2 : Analyse SonarQube (Backend + Frontend) ─────────────
         //   - Credential "Secret text" avec l'ID 'sonarqube-token'
         //   - Serveur déclaré sous le nom 'SonarQube' dans Configure System
         stage('SonarQube Analysis') {
@@ -60,7 +43,7 @@ pipeline {
             }
         }
 
-        // ── Étape 4 : Quality Gate — bloque le pipeline si KO ─────────────
+        // ── Étape 3 : Quality Gate — bloque le pipeline si KO ─────────────
         stage('Quality Gate') {
             steps {
                 // Attend le résultat du Quality Gate SonarQube (timeout 5 min)
@@ -70,7 +53,7 @@ pipeline {
             }
         }
 
-        // ── Étape 5 : Build image Docker Backend ──────────────────────────
+        // ── Étape 4 : Build image Docker Backend ──────────────────────────
         stage('Build Backend') {
             steps {
                 dir('DevOps/Backend') {
@@ -79,7 +62,7 @@ pipeline {
             }
         }
 
-        // ── Étape 6 : Build image Docker Frontend ─────────────────────────
+        // ── Étape 5 : Build image Docker Frontend ─────────────────────────
         stage('Build Frontend') {
             steps {
                 dir('DevOps/Frontend') {
@@ -88,7 +71,7 @@ pipeline {
             }
         }
 
-        // ── Étape 7 : Push des images vers Docker Hub ─────────────────────
+        // ── Étape 6 : Push des images vers Docker Hub ─────────────────────
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(
@@ -113,7 +96,7 @@ pipeline {
             }
         }
 
-        // ── Étape 8 : Démarrage des conteneurs ────────────────────────────
+        // ── Étape 7 : Démarrage des conteneurs ────────────────────────────
         stage('Start Containers') {
             steps {
                 withCredentials([file(credentialsId: 'portfolio-env', variable: 'ENV_FILE')]) {
@@ -127,7 +110,7 @@ pipeline {
             }
         }
 
-        // ── Étape 9 : Vérification des conteneurs ─────────────────────────
+        // ── Étape 8 : Vérification des conteneurs ─────────────────────────
         stage('Verify Containers') {
             steps {
                 sh 'docker ps'

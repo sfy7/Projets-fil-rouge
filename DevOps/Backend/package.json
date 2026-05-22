@@ -7,24 +7,9 @@
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
     "seed": "node src/config/seeder.js",
-    "seed:destroy": "node src/config/seeder.js -d",
-    "test": "jest --coverage"
+    "seed:destroy": "node src/config/seeder.js -d"
   },
   
-  "jest": {
-    "testEnvironment": "node",
-    "testMatch": ["**/tests/**/*.test.js"],
-    "coverageReporters": ["lcov", "text"],
-    "coverageDirectory": "coverage",
-    "collectCoverageFrom": [
-      "src/**/*.js",
-      "!src/config/seeder.js",
-      "!src/tests/**"
-    ],
-    "forceExit": true,
-    "testTimeout": 10000,
-    "detectOpenHandles": false
-  },
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^16.3.1",

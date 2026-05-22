@@ -100,12 +100,9 @@ pipeline {
                 withCredentials([file(credentialsId: 'portfolio-env', variable: 'ENV_FILE')]) {
                     dir('DevOps') {
                         sh 'cp --remove-destination "$ENV_FILE" .env'
-                        try {
-                            sh 'docker compose down'
-                            sh 'docker compose --env-file .env up -d'
-                        } finally {
-                            sh 'rm -f .env'
-                        }
+                        sh 'docker compose down'
+                        sh 'docker compose --env-file .env up -d'
+                        sh 'rm -f .env'
                     }
                 }
             }

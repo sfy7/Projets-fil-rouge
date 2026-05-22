@@ -5,7 +5,7 @@ pipeline {
         BACKEND_IMAGE  = "portfolio-backend"
         FRONTEND_IMAGE = "portfolio-frontend"
         DOCKHUB_USER   = "sfy7"
-        SONAR_HOST_URL = "http://localhost:9000"
+        SONAR_HOST_URL = "http://172.17.0.1:9000"
     }
 
     stages {
@@ -24,14 +24,13 @@ pipeline {
                     withSonarQubeEnv('SonarQube') {
                         withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
                             sh '''
-                                mkdir -p $(pwd)/.scannerwork
-                                chmod 777 $(pwd)/.scannerwork
-                                docker run --rm \
-                                    --network devops_app-network \
-                                    -e SONAR_HOST_URL=http://172.17.0.1:9000 \
-                                    -e SONAR_TOKEN=''' + env.SONAR_TOKEN + ''' \
-                                    -v $(pwd):/usr/src \
-                                    -v $(pwd)/.scannerwork:/tmp/.scannerwork \
+                                rm -rf .scannerwork
+                                docker run --rm \\
+                                    --network devops_app-network \\
+                                    -e SONAR_HOST_URL=${SONAR_HOST_URL} \\
+                                    -e SONAR_TOKEN=${SONAR_TOKEN} \\
+                                    -v \$(pwd):/usr/src \\
+                                    -v \$(pwd)/.scannerwork:/tmp/.scannerwork \\
                                     sonarsource/sonar-scanner-cli:latest
                             '''
                         }

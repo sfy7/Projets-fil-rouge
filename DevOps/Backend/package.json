@@ -10,6 +10,7 @@
     "seed:destroy": "node src/config/seeder.js -d",
     "test": "jest --coverage"
   },
+  
   "jest": {
     "testEnvironment": "node",
     "testMatch": ["**/tests/**/*.test.js"],
@@ -19,7 +20,10 @@
       "src/**/*.js",
       "!src/config/seeder.js",
       "!src/tests/**"
-    ]
+    ],
+    "forceExit": true,
+    "testTimeout": 10000,
+    "detectOpenHandles": false
   },
   "dependencies": {
     "cors": "^2.8.6",

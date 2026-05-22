@@ -29,6 +29,7 @@ pipeline {
                                     -e SONAR_HOST_URL=http://172.17.0.1:9000 \
                                     -e SONAR_TOKEN=''' + env.SONAR_TOKEN + ''' \
                                     -v $(pwd):/usr/src \
+                                    -v $(pwd)/.scannerwork:/tmp/.scannerwork \
                                     sonarsource/sonar-scanner-cli:latest
                             '''
                         }

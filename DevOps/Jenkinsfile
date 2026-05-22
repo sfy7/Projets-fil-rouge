@@ -1,16 +1,18 @@
 pipeline {
-    // Agent Jenkins : ici "any" signifie que le pipeline peut s'exécuter sur n'importe quel agent disponible
     agent any
 
-    // Variables globales utilisées dans tout le pipeline (images Docker)
     environment {
         BACKEND_IMAGE  = "portfolio-backend"
         FRONTEND_IMAGE = "portfolio-frontend"
-        DOCKHUB_USER = "sfy7"   // ← Username DockerHub
+        DOCKHUB_USER   = "sfy7"
+
+        // URL de votre instance SonarQube (Docker ou externe)
+        SONAR_HOST_URL = "http://localhost:9000"
     }
 
     stages {
-        // Étape 1 : Récupération du code source depuis GitHub
+
+        // ── Étape 1 : Récupération du code source ──────────────────────────
         stage('Clone Repository') {
             steps {
                 git branch: 'main',
@@ -19,7 +21,56 @@ pipeline {
             }
         }
 
-        // Étape 2 : Construction de l'image Docker du backend
+        // ── Étape 2 : Tests Jest + génération de la couverture ────────────
+        stage('Tests Backend') {
+            steps {
+                dir('DevOps/Backend') {
+                    sh 'npm install'
+                    sh 'npm test'
+                }
+            }
+            post {
+                always {
+                    // Archive le rapport de couverture pour Jenkins
+                    junit allowEmptyResults: true,
+                          testResults: 'DevOps/Backend/coverage/junit.xml'
+                }
+            }
+        }
+
+        // ── Étape 3 : Analyse SonarQube (Backend + Frontend) ─────────────
+        //   - Credential "Secret text" avec l'ID 'sonarqube-token'
+        //   - Serveur déclaré sous le nom 'SonarQube' dans Configure System
+        stage('SonarQube Analysis') {
+            steps {
+                dir('DevOps') {
+                    withSonarQubeEnv('SonarQube') {
+                        withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                            sh """
+                                docker run --rm \
+                                    --network devops_app-network \
+                                    -e SONAR_HOST_URL=${SONAR_HOST_URL} \
+                                    -e SONAR_TOKEN=${SONAR_TOKEN} \
+                                    -v \$(pwd):/usr/src \
+                                    sonarsource/sonar-scanner-cli:latest
+                            """
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Étape 4 : Quality Gate — bloque le pipeline si KO ─────────────
+        stage('Quality Gate') {
+            steps {
+                // Attend le résultat du Quality Gate SonarQube (timeout 5 min)
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        // ── Étape 5 : Build image Docker Backend ──────────────────────────
         stage('Build Backend') {
             steps {
                 dir('DevOps/Backend') {
@@ -28,7 +79,7 @@ pipeline {
             }
         }
 
-        // Étape 3 : Construction de l'image Docker du frontend
+        // ── Étape 6 : Build image Docker Frontend ─────────────────────────
         stage('Build Frontend') {
             steps {
                 dir('DevOps/Frontend') {
@@ -37,60 +88,46 @@ pipeline {
             }
         }
 
-        // Étape 4 : Push des images vers Docker Hub
+        // ── Étape 7 : Push des images vers Docker Hub ─────────────────────
         stage('Push to Docker Hub') {
             steps {
-                // 'dockerhub_creds' = ID du credential Jenkins (type Username/Password)
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub_creds',
                     usernameVariable: 'DOCKHUB_USER',
                     passwordVariable: 'DOCKHUB_PASS'
                 )]) {
-                    // Connexion à Docker Hub
                     sh 'echo "$DOCKHUB_PASS" | docker login -u "$DOCKHUB_USER" --password-stdin'
 
-                    // Tag du backend avec :latest et :numéro de build
                     sh 'docker tag $BACKEND_IMAGE $DOCKHUB_USER/$BACKEND_IMAGE:latest'
                     sh 'docker tag $BACKEND_IMAGE $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}'
-
-                    // Push du backend vers Docker Hub
                     sh 'docker push $DOCKHUB_USER/$BACKEND_IMAGE:latest'
                     sh 'docker push $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}'
 
-                    // Tag du frontend avec :latest et :numéro de build
                     sh 'docker tag $FRONTEND_IMAGE $DOCKHUB_USER/$FRONTEND_IMAGE:latest'
                     sh 'docker tag $FRONTEND_IMAGE $DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}'
-
-                    // Push du frontend vers Docker Hub
                     sh 'docker push $DOCKHUB_USER/$FRONTEND_IMAGE:latest'
                     sh 'docker push $DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}'
 
-                    // Déconnexion pour ne pas laisser la session ouverte sur le serveur
                     sh 'docker logout'
                 }
             }
         }
 
-        // Étape 5 : Démarrage des conteneurs avec Docker Compose
+        // ── Étape 8 : Démarrage des conteneurs ────────────────────────────
         stage('Start Containers') {
             steps {
-                // Récupère le fichier .env stocké dans les credentials Jenkins
                 withCredentials([file(credentialsId: 'portfolio-env', variable: 'ENV_FILE')]) {
-                    dir('DevOps') {   // ← le dossier qui CONTIENT docker-compose.yaml
-                        // Copie le .env secret dans le dossier DevOps
+                    dir('DevOps') {
                         sh 'cp --remove-destination "$ENV_FILE" .env'
-                        // Arrête les anciens conteneurs
                         sh 'docker compose down'
-                        // Démarre tous les services (mongo + backend + frontend)
                         sh 'docker compose --env-file .env up -d'
-                        // Supprime le .env pour ne pas le laisser sur le serveur
                         sh 'rm -f .env'
                     }
                 }
             }
         }
 
-        // Étape 6 : Vérification que les conteneurs sont bien en cours d'exécution
+        // ── Étape 9 : Vérification des conteneurs ─────────────────────────
         stage('Verify Containers') {
             steps {
                 sh 'docker ps'
@@ -98,34 +135,55 @@ pipeline {
         }
     }
 
-    // Actions exécutées après l'exécution du pipeline
     post {
         success {
             echo 'Déploiement réussi ✅'
             emailext (
-                subject: "✅ BUILD #${env.BUILD_NUMBER} — SUCCESS",
-                body: """✅ BUILD #${env.BUILD_NUMBER} — SUCCESS
+                subject: "[Jenkins] Build #${env.BUILD_NUMBER} — ${env.JOB_NAME} — SUCCESS",
+                body: """Pipeline Execution Report — BUILD #${env.BUILD_NUMBER}
+Status   : SUCCESS ✅
+
 Job      : ${env.JOB_NAME}
 Duration : ${currentBuild.durationString}
-Images   : ${env.BACKEND_IMAGE}:${env.BUILD_NUMBER} / ${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER} pushed to Docker Hub
-Logs     : ${env.BUILD_URL}console""",
+
+[Deployment]
+Backend  : ${env.DOCKHUB_USER}/${env.BACKEND_IMAGE}:${env.BUILD_NUMBER}
+Frontend : ${env.DOCKHUB_USER}/${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER}
+Registry : Docker Hub
+
+[Code Quality]
+Engine   : SonarQube Static Analysis
+Status   : Quality Gate PASSED — No critical issues detected.
+Report   : ${SONAR_HOST_URL}/dashboard?id=portfolio
+
+[Links]
+Console  : ${env.BUILD_URL}console""",
                 to: "safietou0218@gmail.com"
             )
         }
         failure {
             echo 'Pipeline échoué ❌'
             emailext (
-                subject: "❌ BUILD #${env.BUILD_NUMBER} — FAILURE",
-                body: """❌ BUILD #${env.BUILD_NUMBER} — FAILURE
-The pipeline has failed. Please check the logs for more details.
- 
+                subject: "[Jenkins] Build #${env.BUILD_NUMBER} — ${env.JOB_NAME} — FAILURE",
+                body: """Pipeline Execution Report — BUILD #${env.BUILD_NUMBER}
+Status   : FAILURE ❌
+
 Job      : ${env.JOB_NAME}
 Duration : ${currentBuild.durationString}
 Stage    : ${env.STAGE_NAME}
-Logs     : ${env.BUILD_URL}console""",
+
+[Code Quality]
+Engine   : SonarQube Static Analysis
+Status   : Quality Gate FAILED — Critical issues detected. Deployment has been aborted.
+Report   : ${SONAR_HOST_URL}/dashboard?id=portfolio
+
+[Action Required]
+The pipeline has failed. Please review the SonarQube report, fix the detected issues and re-trigger the build.
+
+[Links]
+Console  : ${env.BUILD_URL}console""",
                 to: "safietou0218@gmail.com"
             )
         }
     }
-        
 }

@@ -5,14 +5,11 @@ pipeline {
         BACKEND_IMAGE  = "portfolio-backend"
         FRONTEND_IMAGE = "portfolio-frontend"
         DOCKHUB_USER   = "sfy7"
-
-        // URL de votre instance SonarQube (Docker ou externe)
         SONAR_HOST_URL = "http://localhost:9000"
     }
 
     stages {
 
-        // ── Étape 1 : Récupération du code source ──────────────────────────
         stage('Clone Repository') {
             steps {
                 git branch: 'main',
@@ -21,58 +18,53 @@ pipeline {
             }
         }
 
-        // ── Étape 2 : Analyse SonarQube (Backend + Frontend) ─────────────
-        //   - Credential "Secret text" avec l'ID 'sonarqube-token'
-        //   - Serveur déclaré sous le nom 'SonarQube' dans Configure System
         stage('SonarQube Analysis') {
             steps {
                 dir('DevOps') {
                     withSonarQubeEnv('SonarQube') {
                         withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                            sh """
+                            sh '''
                                 docker run --rm \
                                     --network devops_app-network \
-                                    --add-host=host.docker.internal:host-gateway \
-                                    -e SONAR_HOST_URL=http://host.docker.internal:9000 \
-                                    -e SONAR_TOKEN=${SONAR_TOKEN} \
-                                    -v \$(pwd):/usr/src \
+                                    -e SONAR_HOST_URL=http://172.17.0.1:9000 \
+                                    -e SONAR_TOKEN=''' + env.SONAR_TOKEN + ''' \
+                                    -v $(pwd):/usr/src \
                                     sonarsource/sonar-scanner-cli:latest
-                            """
+                            '''
                         }
                     }
                 }
             }
         }
 
-        // ── Étape 3 : Quality Gate — bloque le pipeline si KO ─────────────
         stage('Quality Gate') {
             steps {
-                // Attend le résultat du Quality Gate SonarQube (timeout 5 min)
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
 
-        // ── Étape 4 : Build image Docker Backend ──────────────────────────
-        stage('Build Backend') {
-            steps {
-                dir('DevOps/Backend') {
-                    sh 'docker build -t $BACKEND_IMAGE .'
+        // ✅ Build en parallèle
+        stage('Build Images') {
+            parallel {
+                stage('Build Backend') {
+                    steps {
+                        dir('DevOps/Backend') {
+                            sh 'docker build -t $BACKEND_IMAGE .'
+                        }
+                    }
+                }
+                stage('Build Frontend') {
+                    steps {
+                        dir('DevOps/Frontend') {
+                            sh 'docker build -t $FRONTEND_IMAGE .'
+                        }
+                    }
                 }
             }
         }
 
-        // ── Étape 5 : Build image Docker Frontend ─────────────────────────
-        stage('Build Frontend') {
-            steps {
-                dir('DevOps/Frontend') {
-                    sh 'docker build -t $FRONTEND_IMAGE .'
-                }
-            }
-        }
-
-        // ── Étape 6 : Push des images vers Docker Hub ─────────────────────
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(
@@ -82,22 +74,23 @@ pipeline {
                 )]) {
                     sh 'echo "$DOCKHUB_PASS" | docker login -u "$DOCKHUB_USER" --password-stdin'
 
-                    sh 'docker tag $BACKEND_IMAGE $DOCKHUB_USER/$BACKEND_IMAGE:latest'
-                    sh 'docker tag $BACKEND_IMAGE $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}'
-                    sh 'docker push $DOCKHUB_USER/$BACKEND_IMAGE:latest'
-                    sh 'docker push $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}'
+                    sh '''
+                        docker tag $BACKEND_IMAGE $DOCKHUB_USER/$BACKEND_IMAGE:latest
+                        docker tag $BACKEND_IMAGE $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}
+                        docker push $DOCKHUB_USER/$BACKEND_IMAGE:latest
+                        docker push $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}
 
-                    sh 'docker tag $FRONTEND_IMAGE $DOCKHUB_USER/$FRONTEND_IMAGE:latest'
-                    sh 'docker tag $FRONTEND_IMAGE $DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}'
-                    sh 'docker push $DOCKHUB_USER/$FRONTEND_IMAGE:latest'
-                    sh 'docker push $DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}'
+                        docker tag $FRONTEND_IMAGE $DOCKHUB_USER/$FRONTEND_IMAGE:latest
+                        docker tag $FRONTEND_IMAGE $DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}
+                        docker push $DOCKHUB_USER/$FRONTEND_IMAGE:latest
+                        docker push $DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}
+                    '''
 
                     sh 'docker logout'
                 }
             }
         }
 
-        // ── Étape 7 : Démarrage des conteneurs ────────────────────────────
         stage('Start Containers') {
             steps {
                 withCredentials([file(credentialsId: 'portfolio-env', variable: 'ENV_FILE')]) {
@@ -111,7 +104,6 @@ pipeline {
             }
         }
 
-        // ── Étape 8 : Vérification des conteneurs ─────────────────────────
         stage('Verify Containers') {
             steps {
                 sh 'docker ps'

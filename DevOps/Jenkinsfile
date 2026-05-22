@@ -5,6 +5,7 @@ pipeline {
         BACKEND_IMAGE  = "portfolio-backend"
         FRONTEND_IMAGE = "portfolio-frontend"
         DOCKHUB_USER   = "sfy7"
+        SCANNER_HOME = tool 'SonarQube Scanner'
     }
 
     stages {
@@ -27,7 +28,7 @@ pipeline {
                 dir('DevOps') {
                     withSonarQubeEnv('SonarQube') {
                         sh '''
-                            sonar-scanner -Dproject.settings=sonar-project.properties
+                            $SCANNER_HOME/bin/sonar-scanner -Dproject.settings=sonar-project.properties
                         '''
                     }
                 }

@@ -28,9 +28,9 @@ pipeline {
                                 docker run --rm \\
                                     --network devops_app-network \\
                                     -e SONAR_HOST_URL=${SONAR_HOST_URL} \\
-                                    -e SONAR_TOKEN=${SONAR_TOKEN} \\
+                                    -e SONAR_TOKEN=${env.SONAR_TOKEN} \\
+                                    -e SONAR_SCANNER_OPTS="-Dsonar.working.directory=/usr/src/.scannerwork" \\
                                     -v \$(pwd):/usr/src \\
-                                    -v \$(pwd)/.scannerwork:/tmp/.scannerwork \\
                                     sonarsource/sonar-scanner-cli:latest
                             """
                         }

@@ -24,6 +24,8 @@ pipeline {
                     withSonarQubeEnv('SonarQube') {
                         withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
                             sh '''
+                                mkdir -p $(pwd)/.scannerwork
+                                chmod 777 $(pwd)/.scannerwork
                                 docker run --rm \
                                     --network devops_app-network \
                                     -e SONAR_HOST_URL=http://172.17.0.1:9000 \

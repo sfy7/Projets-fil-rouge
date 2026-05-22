@@ -23,7 +23,7 @@ pipeline {
                 dir('DevOps') {
                     withSonarQubeEnv('SonarQube') {
                         withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                            sh '''
+                            sh """
                                 rm -rf .scannerwork
                                 docker run --rm \\
                                     --network devops_app-network \\
@@ -32,7 +32,7 @@ pipeline {
                                     -v \$(pwd):/usr/src \\
                                     -v \$(pwd)/.scannerwork:/tmp/.scannerwork \\
                                     sonarsource/sonar-scanner-cli:latest
-                            '''
+                            """
                         }
                     }
                 }
@@ -47,7 +47,6 @@ pipeline {
             }
         }
 
-        // ✅ Build en parallèle
         stage('Build Images') {
             parallel {
                 stage('Build Backend') {
@@ -98,9 +97,12 @@ pipeline {
                 withCredentials([file(credentialsId: 'portfolio-env', variable: 'ENV_FILE')]) {
                     dir('DevOps') {
                         sh 'cp --remove-destination "$ENV_FILE" .env'
-                        sh 'docker compose down'
-                        sh 'docker compose --env-file .env up -d'
-                        sh 'rm -f .env'
+                        try {
+                            sh 'docker compose down'
+                            sh 'docker compose --env-file .env up -d'
+                        } finally {
+                            sh 'rm -f .env'
+                        }
                     }
                 }
             }

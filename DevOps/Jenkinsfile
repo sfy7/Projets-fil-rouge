@@ -23,16 +23,19 @@ pipeline {
                 dir('DevOps') {
                     withSonarQubeEnv('SonarQube') {
                         withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                            sh """
+                            sh '''
                                 rm -rf .scannerwork
-                                docker run --rm \\
-                                    --network devops_app-network \\
-                                    -e SONAR_HOST_URL=${SONAR_HOST_URL} \\
-                                    -e SONAR_TOKEN=${env.SONAR_TOKEN} \\
-                                    -e SONAR_SCANNER_OPTS="-Dsonar.working.directory=/usr/src/.scannerwork" \\
-                                    -v \$(pwd):/usr/src \\
+                                mkdir -p .scannerwork
+                                chmod 777 .scannerwork
+                                docker run --rm \
+                                    --network devops_app-network \
+                                    --user $(id -u):$(id -g) \
+                                    -e SONAR_HOST_URL=http://172.17.0.1:9000 \
+                                    -e SONAR_TOKEN=$SONAR_TOKEN \
+                                    -v $(pwd):/usr/src \
+                                    -v $(pwd)/.scannerwork:/tmp/.scannerwork \
                                     sonarsource/sonar-scanner-cli:latest
-                            """
+                            '''
                         }
                     }
                 }
@@ -47,7 +50,6 @@ pipeline {
             }
         }
 
-        // ✅ Build en parallèle
         stage('Build Images') {
             parallel {
                 stage('Build Backend') {
@@ -98,9 +100,12 @@ pipeline {
                 withCredentials([file(credentialsId: 'portfolio-env', variable: 'ENV_FILE')]) {
                     dir('DevOps') {
                         sh 'cp --remove-destination "$ENV_FILE" .env'
-                        sh 'docker compose down'
-                        sh 'docker compose --env-file .env up -d'
-                        sh 'rm -f .env'
+                        try {
+                            sh 'docker compose down'
+                            sh 'docker compose --env-file .env up -d'
+                        } finally {
+                            sh 'rm -f .env'
+                        }
                     }
                 }
             }
@@ -132,7 +137,7 @@ Registry : Docker Hub
 [Code Quality]
 Engine   : SonarQube Static Analysis
 Status   : Quality Gate PASSED — No critical issues detected.
-Report   : ${SONAR_HOST_URL}/dashboard?id=portfolio
+Report   : ${SONAR_HOST_URL}/dashboard?id=fullStack_portfolio
 
 [Links]
 Console  : ${env.BUILD_URL}console""",
@@ -153,7 +158,7 @@ Stage    : ${env.STAGE_NAME}
 [Code Quality]
 Engine   : SonarQube Static Analysis
 Status   : Quality Gate FAILED — Critical issues detected. Deployment has been aborted.
-Report   : ${SONAR_HOST_URL}/dashboard?id=portfolio
+Report   : ${SONAR_HOST_URL}/dashboard?id=fullStack_portfolio
 
 [Action Required]
 The pipeline has failed. Please review the SonarQube report, fix the detected issues and re-trigger the build.

@@ -5,7 +5,6 @@ pipeline {
         BACKEND_IMAGE  = "portfolio-backend"
         FRONTEND_IMAGE = "portfolio-frontend"
         DOCKHUB_USER   = "sfy7"
-        SONAR_HOST_URL = "http://172.17.0.1:9000"
     }
 
     stages {
@@ -18,30 +17,27 @@ pipeline {
             }
         }
 
+        // ─────────────────────────────────────────────────────────────
+        // 🔍 Analyse SonarQube du code source
+        // Utilise le scanner natif Jenkins (pas Docker)
+        // Le fichier sonar-project.properties est utilisé automatiquement
+        // ─────────────────────────────────────────────────────────────
         stage('SonarQube Analysis') {
             steps {
                 dir('DevOps') {
                     withSonarQubeEnv('SonarQube') {
-                        withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                            sh '''
-                                rm -rf .scannerwork
-                                mkdir -p .scannerwork
-                                chmod 777 .scannerwork
-                                docker run --rm \
-                                    --network devops_app-network \
-                                    --user $(id -u):$(id -g) \
-                                    -e SONAR_HOST_URL=http://172.17.0.1:9000 \
-                                    -e SONAR_TOKEN=$SONAR_TOKEN \
-                                    -v $(pwd):/usr/src \
-                                    -v $(pwd)/.scannerwork:/tmp/.scannerwork \
-                                    sonarsource/sonar-scanner-cli:latest
-                            '''
-                        }
+                        sh '''
+                            sonar-scanner -Dproject.settings=sonar-project.properties
+                        '''
                     }
                 }
             }
         }
 
+        // ─────────────────────────────────────────────────────────────
+        // 🧪 Quality Gate SonarQube
+        // Bloque le pipeline si le code ne respecte pas les règles qualité
+        // ─────────────────────────────────────────────────────────────
         stage('Quality Gate') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
@@ -50,6 +46,10 @@ pipeline {
             }
         }
 
+        // ─────────────────────────────────────────────────────────────
+        // 🐳 Build des images Docker
+        // Backend + Frontend en parallèle pour accélérer le pipeline
+        // ─────────────────────────────────────────────────────────────
         stage('Build Images') {
             parallel {
                 stage('Build Backend') {
@@ -59,6 +59,7 @@ pipeline {
                         }
                     }
                 }
+
                 stage('Build Frontend') {
                     steps {
                         dir('DevOps/Frontend') {
@@ -69,16 +70,20 @@ pipeline {
             }
         }
 
+        // ─────────────────────────────────────────────────────────────
+        // 🚀 Push des images vers Docker Hub
+        // Version latest + version build number
+        // ─────────────────────────────────────────────────────────────
         stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub_creds',
-                    usernameVariable: 'DOCKHUB_USER',
+                    usernameVariable: 'DOCKHUB_USER_CRED',
                     passwordVariable: 'DOCKHUB_PASS'
                 )]) {
-                    sh 'echo "$DOCKHUB_PASS" | docker login -u "$DOCKHUB_USER" --password-stdin'
-
                     sh '''
+                        echo "$DOCKHUB_PASS" | docker login -u "$DOCKHUB_USER_CRED" --password-stdin
+
                         docker tag $BACKEND_IMAGE $DOCKHUB_USER/$BACKEND_IMAGE:latest
                         docker tag $BACKEND_IMAGE $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}
                         docker push $DOCKHUB_USER/$BACKEND_IMAGE:latest
@@ -88,26 +93,35 @@ pipeline {
                         docker tag $FRONTEND_IMAGE $DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}
                         docker push $DOCKHUB_USER/$FRONTEND_IMAGE:latest
                         docker push $DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}
-                    '''
 
-                    sh 'docker logout'
+                        docker logout
+                    '''
                 }
             }
         }
 
+        // ─────────────────────────────────────────────────────────────
+        // 📦 Déploiement des containers via docker compose
+        // Utilise fichier .env injecté via Jenkins credentials
+        // ─────────────────────────────────────────────────────────────
         stage('Start Containers') {
             steps {
                 withCredentials([file(credentialsId: 'portfolio-env', variable: 'ENV_FILE')]) {
                     dir('DevOps') {
-                        sh 'cp --remove-destination "$ENV_FILE" .env'
-                        sh 'docker compose down'
-                        sh 'docker compose --env-file .env up -d'
-                        sh 'rm -f .env'
+                        sh '''
+                            cp --remove-destination "$ENV_FILE" .env
+                            docker compose down
+                            docker compose --env-file .env up -d
+                            rm -f .env
+                        '''
                     }
                 }
             }
         }
 
+        // ─────────────────────────────────────────────────────────────
+        // 🔎 Vérification des containers Docker
+        // ─────────────────────────────────────────────────────────────
         stage('Verify Containers') {
             steps {
                 sh 'docker ps'
@@ -116,52 +130,62 @@ pipeline {
     }
 
     post {
+
+        // ─────────────────────────────────────────────────────────────
+        // ✅ Pipeline réussi
+        // Notification email + rapport SonarQube
+        // ─────────────────────────────────────────────────────────────
         success {
             echo 'Déploiement réussi ✅'
             emailext (
-                subject: "[Jenkins] Build #${env.BUILD_NUMBER} — ${env.JOB_NAME} — SUCCESS",
-                body: """Pipeline Execution Report — BUILD #${env.BUILD_NUMBER}
-Status   : SUCCESS ✅
+                subject: "[Jenkins] Build #${env.BUILD_NUMBER} — SUCCESS",
+                body: """Pipeline SUCCESS ✅
 
 Job      : ${env.JOB_NAME}
+Build    : #${env.BUILD_NUMBER}
 Duration : ${currentBuild.durationString}
 
-[Deployment]
+[Quality]
+SonarQube : PASSED ✅
+Report    : http://172.17.0.1:9000/dashboard?id=fullStack_portfolio
+
+[Artifacts]
 Backend  : ${env.DOCKHUB_USER}/${env.BACKEND_IMAGE}:${env.BUILD_NUMBER}
 Frontend : ${env.DOCKHUB_USER}/${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER}
-Registry : Docker Hub
 
-[Code Quality]
-Engine   : SonarQube Static Analysis
-Status   : Quality Gate PASSED — No critical issues detected.
-Report   : ${SONAR_HOST_URL}/dashboard?id=fullStack_portfolio
-
-[Links]
-Console  : ${env.BUILD_URL}console""",
+[Console]
+${env.BUILD_URL}console
+""",
                 to: "safietou0218@gmail.com"
             )
         }
+
+        // ─────────────────────────────────────────────────────────────
+        // ❌ Pipeline échoué
+        // Notification + lien vers console Jenkins
+        // ─────────────────────────────────────────────────────────────
         failure {
             echo 'Pipeline échoué ❌'
             emailext (
-                subject: "[Jenkins] Build #${env.BUILD_NUMBER} — ${env.JOB_NAME} — FAILURE",
-                body: """Pipeline Execution Report — BUILD #${env.BUILD_NUMBER}
-Status   : FAILURE ❌
+                subject: "[Jenkins] Build #${env.BUILD_NUMBER} — FAILURE",
+                body: """Pipeline FAILURE ❌
 
 Job      : ${env.JOB_NAME}
+Build    : #${env.BUILD_NUMBER}
 Duration : ${currentBuild.durationString}
+
 Stage    : ${env.STAGE_NAME}
 
-[Code Quality]
-Engine   : SonarQube Static Analysis
-Status   : Quality Gate FAILED — Critical issues detected. Deployment has been aborted.
-Report   : ${SONAR_HOST_URL}/dashboard?id=fullStack_portfolio
+[Quality]
+SonarQube : FAILED ❌
+Report    : http://172.17.0.1:9000/dashboard?id=fullStack_portfolio
 
 [Action Required]
-The pipeline has failed. Please review the SonarQube report, fix the detected issues and re-trigger the build.
+Corrige les problèmes détectés dans SonarQube puis relance le pipeline.
 
-[Links]
-Console  : ${env.BUILD_URL}console""",
+[Console]
+${env.BUILD_URL}console
+""",
                 to: "safietou0218@gmail.com"
             )
         }

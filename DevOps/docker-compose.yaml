@@ -60,6 +60,54 @@ services:
       retries: 3
       start_period: 10s
 
+
+  # service 4 : SonarQube
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: sonarqube
+    restart: unless-stopped
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonar-db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+    ports:
+      - '9000:9000'            # Interface web SonarQube → http://<host>:9000
+    volumes:
+      - sonar_data:/opt/sonarqube/data
+      - sonar_extensions:/opt/sonarqube/extensions
+      - sonar_logs:/opt/sonarqube/logs
+    depends_on:
+      sonar-db:
+        condition: service_healthy
+    networks:
+      - app-network
+    # SonarQube requiert vm.max_map_count ≥ 262144 sur l'hôte
+    # Exécuter une seule fois sur le serveur : sudo sysctl -w vm.max_map_count=262144
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # service 5 : Base PostgreSQL pour SonarQube 
+  sonar-db:
+    image: postgres:15-alpine
+    container_name: sonar-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    volumes:
+      - sonar_postgres:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonar -d sonar"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
 # Réseau personnalisé — DNS intégré, isolé
 networks:
   app-network:
@@ -68,3 +116,7 @@ networks:
 # Volume nommé — persiste après 'docker compose down'
 volumes:
   mongo_data:
+  sonar_data:
+  sonar_extensions:
+  sonar_logs:
+  sonar_postgres:

@@ -28,7 +28,6 @@ pipeline {
                                     --network devops_app-network \
                                     -e SONAR_HOST_URL=http://172.17.0.1:9000 \
                                     -e SONAR_TOKEN=''' + env.SONAR_TOKEN + ''' \
-                                    -e SONAR_SCANNER_OPTS="-Dsonar.working.directory=/usr/src/.scannerwork" \
                                     -v $(pwd):/usr/src \
                                     sonarsource/sonar-scanner-cli:latest
                             '''

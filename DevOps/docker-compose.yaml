@@ -101,6 +101,7 @@ services:
       - sonar_postgres:/var/lib/postgresql/data
     networks:
       - app-network
+      - default
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sonar -d sonar"]
       interval: 10s
@@ -111,6 +112,8 @@ services:
 # Réseau personnalisé — DNS intégré, isolé
 networks:
   app-network:
+    driver: bridge
+  default:
     driver: bridge
 
 # Volume nommé — persiste après 'docker compose down'

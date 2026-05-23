@@ -139,20 +139,20 @@ pipeline {
         success {
             echo 'Déploiement réussi ✅'
             emailext (
-                subject: "[Jenkins] Build #${env.BUILD_NUMBER} — SUCCESS",
+                subject: "[Jenkins] Build #${env.BUILD_NUMBER} — SUCCESS ✅",
                 body: """Pipeline SUCCESS ✅
 
 Job      : ${env.JOB_NAME}
 Build    : #${env.BUILD_NUMBER}
-Duration : ${currentBuild.durationString}
+Duration : ${currentBuild.durationString.replace(' and counting', '')}
 
 [Quality]
 SonarQube : PASSED ✅
 Report    : http://172.17.0.1:9000/dashboard?id=fullStack_portfolio
 
 [Artifacts]
-Backend  : ${env.DOCKHUB_USER}/${env.BACKEND_IMAGE}:${env.BUILD_NUMBER}
-Frontend : ${env.DOCKHUB_USER}/${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER}
+Backend  : ${env.DOCKHUB_USER}/${env.BACKEND_IMAGE}:${env.BUILD_NUMBER} pushed to Docker Hub
+Frontend : ${env.DOCKHUB_USER}/${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER} pushed to Docker Hub
 
 [Console]
 ${env.BUILD_URL}console

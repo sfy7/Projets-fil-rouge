@@ -1,0 +1,77 @@
+# ─────────────────────────────────────────────────────────────
+# Deployment Backend
+# Image : sfy7/portfolio-backend  (ton Docker Hub)
+# Le tag est mis à jour par Jenkins via :
+#   kubectl set image ... backend=sfy7/portfolio-backend:${BUILD_NUMBER}
+# ─────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: portfolio
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          # Jenkins remplace "latest" par le vrai tag au moment du déploiement
+          image: sfy7/portfolio-backend:latest
+          imagePullPolicy: Always   # Toujours récupérer la dernière version depuis Docker Hub
+          ports:
+            - containerPort: 5000
+          # Variables injectées depuis le ConfigMap
+          env:
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: portfolio-config
+                  key: NODE_ENV
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: portfolio-config
+                  key: PORT
+            - name: MONGO_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: portfolio-config
+                  key: MONGO_URI
+            - name: CORS_ORIGIN
+              valueFrom:
+                configMapKeyRef:
+                  name: portfolio-config
+                  key: CORS_ORIGIN
+          # Même healthcheck que dans docker-compose.yaml
+          # wget -qO- http://localhost:5000/api/projets
+          livenessProbe:
+            httpGet:
+              path: /api/projets
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/projets
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 5
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"

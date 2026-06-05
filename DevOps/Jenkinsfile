@@ -5,11 +5,15 @@ pipeline {
         BACKEND_IMAGE  = "portfolio-backend"
         FRONTEND_IMAGE = "portfolio-frontend"
         DOCKHUB_USER   = "sfy7"
-        SCANNER_HOME = tool 'SonarQube Scanner'
+        SCANNER_HOME   = tool 'SonarQube Scanner'
+        K8S_NAMESPACE  = "portfolio"
     }
 
     stages {
 
+        // ─────────────────────────────────────────────────────────────
+        // 📥 Clone du dépôt Git
+        // ─────────────────────────────────────────────────────────────
         stage('Clone Repository') {
             steps {
                 git branch: 'main',
@@ -19,25 +23,20 @@ pipeline {
         }
 
         // ─────────────────────────────────────────────────────────────
-        // 🔍 Analyse SonarQube du code source
-        // Utilise le scanner natif Jenkins (pas Docker)
-        // Le fichier sonar-project.properties est utilisé automatiquement
+        // 🔍 Analyse SonarQube
         // ─────────────────────────────────────────────────────────────
         stage('SonarQube Analysis') {
             steps {
                 dir('DevOps') {
                     withSonarQubeEnv('SonarQube') {
-                        sh '''
-                            $SCANNER_HOME/bin/sonar-scanner -Dproject.settings=sonar-project.properties
-                        '''
+                        sh '$SCANNER_HOME/bin/sonar-scanner -Dproject.settings=sonar-project.properties'
                     }
                 }
             }
         }
 
         // ─────────────────────────────────────────────────────────────
-        // 🧪 Quality Gate SonarQube
-        // Bloque le pipeline si le code ne respecte pas les règles qualité
+        // 🧪 Quality Gate
         // ─────────────────────────────────────────────────────────────
         stage('Quality Gate') {
             steps {
@@ -48,8 +47,7 @@ pipeline {
         }
 
         // ─────────────────────────────────────────────────────────────
-        // 🐳 Build des images Docker
-        // Backend + Frontend en parallèle pour accélérer le pipeline
+        // 🐳 Build des images Docker (en parallèle)
         // ─────────────────────────────────────────────────────────────
         stage('Build Images') {
             parallel {
@@ -60,7 +58,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Build Frontend') {
                     steps {
                         dir('DevOps/Frontend') {
@@ -72,8 +69,7 @@ pipeline {
         }
 
         // ─────────────────────────────────────────────────────────────
-        // 🚀 Push des images vers Docker Hub
-        // Version latest + version build number
+        // 🚀 Push vers Docker Hub
         // ─────────────────────────────────────────────────────────────
         stage('Push to Docker Hub') {
             steps {
@@ -85,8 +81,8 @@ pipeline {
                     sh '''
                         echo "$DOCKHUB_PASS" | docker login -u "$DOCKHUB_USER_CRED" --password-stdin
 
-                        docker tag $BACKEND_IMAGE $DOCKHUB_USER/$BACKEND_IMAGE:latest
-                        docker tag $BACKEND_IMAGE $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}
+                        docker tag $BACKEND_IMAGE  $DOCKHUB_USER/$BACKEND_IMAGE:latest
+                        docker tag $BACKEND_IMAGE  $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}
                         docker push $DOCKHUB_USER/$BACKEND_IMAGE:latest
                         docker push $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}
 
@@ -102,42 +98,80 @@ pipeline {
         }
 
         // ─────────────────────────────────────────────────────────────
-        // 📦 Déploiement des containers via docker compose
-        // Utilise fichier .env injecté via Jenkins credentials
+        // ☸️  Déploiement Kubernetes
         // ─────────────────────────────────────────────────────────────
-        stage('Start Containers') {
+        stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([file(credentialsId: 'portfolio-env', variable: 'ENV_FILE')]) {
-                    dir('DevOps') {
-                        sh '''
-                            cp --remove-destination "$ENV_FILE" .env
-                            docker compose down
-                            docker compose --env-file .env up -d
-                            rm -f .env
-                        '''
-                    }
+                dir('DevOps') {
+                    sh '''
+                        # ── Namespace ──
+                        kubectl apply -f k8s/base/namespace.yaml
+
+                        # ── ConfigMap + Secret ──
+                        kubectl apply -f k8s/base/configmap-and-secret.yaml
+
+                        # ── Services (tous regroupés) ──
+                        kubectl apply -f k8s/services/services.yaml
+
+                        # ── MongoDB StatefulSet ──
+                        kubectl apply -f k8s/mongodb/mongodb.yaml
+
+                        # ── Attendre que MongoDB soit prêt ──
+                        echo "⏳ Attente de MongoDB..."
+                        kubectl rollout status statefulset/mongo \
+                            -n $K8S_NAMESPACE --timeout=120s
+
+                        # ── Backend ──
+                        kubectl apply -f k8s/backend/backend.yaml
+
+                        kubectl set image deployment/backend-deployment \
+                            backend=$DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER} \
+                            -n $K8S_NAMESPACE
+
+                        echo "⏳ Attente du Backend..."
+                        kubectl rollout status deployment/backend-deployment \
+                            -n $K8S_NAMESPACE --timeout=120s
+
+                        # ── Frontend ──
+                        kubectl apply -f k8s/frontend/frontend.yaml
+
+                        kubectl set image deployment/frontend-deployment \
+                            frontend=$DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER} \
+                            -n $K8S_NAMESPACE
+
+                        echo "⏳ Attente du Frontend..."
+                        kubectl rollout status deployment/frontend-deployment \
+                            -n $K8S_NAMESPACE --timeout=60s
+                    '''
                 }
             }
         }
 
         // ─────────────────────────────────────────────────────────────
-        // 🔎 Vérification des containers Docker
+        // 🔎 Vérification
         // ─────────────────────────────────────────────────────────────
-        stage('Verify Containers') {
+        stage('Verify Deployment') {
             steps {
-                sh 'docker ps'
+                sh '''
+                    echo "=== Pods ==="
+                    kubectl get pods -n $K8S_NAMESPACE
+
+                    echo ""
+                    echo "=== Services ==="
+                    kubectl get services -n $K8S_NAMESPACE
+
+                    echo ""
+                    echo "=== URL Frontend ==="
+                    minikube service frontend-service -n $K8S_NAMESPACE --url
+                '''
             }
         }
     }
 
     post {
 
-        // ─────────────────────────────────────────────────────────────
-        // ✅ Pipeline réussi
-        // Notification email + rapport SonarQube
-        // ─────────────────────────────────────────────────────────────
         success {
-            echo 'Déploiement réussi ✅'
+            echo 'Déploiement Kubernetes réussi ✅'
             emailext (
                 subject: "[Jenkins] Build #${env.BUILD_NUMBER} — SUCCESS ✅",
                 body: """Pipeline SUCCESS ✅
@@ -148,11 +182,16 @@ Duration : ${currentBuild.durationString.replace(' and counting', '')}
 
 [Quality]
 SonarQube : PASSED ✅
-Report    : http://172.17.0.1:9000/dashboard?id=fullStack_portfolio
+Report    : http://localhost:9000/dashboard?id=fullStack_portfolio
 
 [Artifacts]
 Backend  : ${env.DOCKHUB_USER}/${env.BACKEND_IMAGE}:${env.BUILD_NUMBER} pushed to Docker Hub
 Frontend : ${env.DOCKHUB_USER}/${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER} pushed to Docker Hub
+
+[Kubernetes]
+Namespace : portfolio
+Pods      : kubectl get pods -n portfolio
+Frontend  : http://localhost:30080
 
 [Console]
 ${env.BUILD_URL}console
@@ -161,28 +200,27 @@ ${env.BUILD_URL}console
             )
         }
 
-        // ─────────────────────────────────────────────────────────────
-        // ❌ Pipeline échoué
-        // Notification + lien vers console Jenkins
-        // ─────────────────────────────────────────────────────────────
         failure {
-            echo 'Pipeline échoué ❌'
+            echo 'Pipeline échoué ❌ — Rollback en cours...'
+            sh '''
+                kubectl rollout undo deployment/backend-deployment  -n portfolio || true
+                kubectl rollout undo deployment/frontend-deployment -n portfolio || true
+            '''
             emailext (
-                subject: "[Jenkins] Build #${env.BUILD_NUMBER} — FAILURE",
+                subject: "[Jenkins] Build #${env.BUILD_NUMBER} — FAILURE ❌",
                 body: """Pipeline FAILURE ❌
 
 Job      : ${env.JOB_NAME}
 Build    : #${env.BUILD_NUMBER}
 Duration : ${currentBuild.durationString}
 
-Stage    : ${env.STAGE_NAME}
+Stage en échec : ${env.STAGE_NAME}
 
 [Quality]
-SonarQube : FAILED ❌
-Report    : http://172.17.0.1:9000/dashboard?id=fullStack_portfolio
+SonarQube : http://localhost:9000/dashboard?id=fullStack_portfolio
 
-[Action Required]
-Corrige les problèmes détectés dans SonarQube puis relance le pipeline.
+[Kubernetes]
+Rollback automatique effectué vers la version précédente.
 
 [Console]
 ${env.BUILD_URL}console

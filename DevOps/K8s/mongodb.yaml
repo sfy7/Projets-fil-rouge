@@ -8,7 +8,7 @@ metadata:
   labels:
     app: mongo
 spec:
-  serviceName: mongo-headless  # service headless requis par le StatefulSet
+  serviceName: mongo-headless
   replicas: 1
   selector:
     matchLabels:
@@ -28,27 +28,36 @@ spec:
               value: "portfolio"
           volumeMounts:
             - name: mongo-data
-              mountPath: /data/db  # chemin de stockage MongoDB dans le conteneur
-          # vérifie que MongoDB est prêt avant d'accepter du trafic
+              mountPath: /data/db
           readinessProbe:
             exec:
               command:
                 - mongosh
+                - --quiet
                 - --eval
-                - "db.runCommand({ ping: 1 })"
-            initialDelaySeconds: 20  # attend 20s avant le 1er check
-            periodSeconds: 10        # vérifie toutes les 10s
-            timeoutSeconds: 5        # abandon si pas de réponse en 5s
-            failureThreshold: 6      # 6 échecs → Pod NotReady
+                - "db.adminCommand('ping').ok || quit(1)"
+            initialDelaySeconds: 30   # plus de marge au démarrage
+            periodSeconds: 15         # moins fréquent = moins de charge CPU
+            timeoutSeconds: 15
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - "db.adminCommand('ping').ok || quit(1)"
+            initialDelaySeconds: 60   # laisse MongoDB bien démarrer
+            periodSeconds: 30         # peu fréquent, juste pour détecter un crash
+            timeoutSeconds: 15
+            failureThreshold: 3
           resources:
-            requests:          # garanti par Kubernetes
+            requests:
               memory: "256Mi"
               cpu: "250m"
-            limits:            # maximum autorisé
+            limits:
               memory: "512Mi"
               cpu: "500m"
-  # crée automatiquement un PVC dédié par Pod : mongo-data-mongo-0
-  # si le Pod redémarre, il retrouve ses données intactes
   volumeClaimTemplates:
     - metadata:
         name: mongo-data

@@ -1,0 +1,99 @@
+# =============================================================
+# SERVICES — Tous les services de l'application portfolio
+# Sans Service, les Pods ne peuvent pas communiquer entre eux
+# car leurs IPs changent à chaque redémarrage.
+# =============================================================
+
+
+# ─────────────────────────────────────────────────────────────
+# SERVICE MONGODB — interne au cluster
+# ─────────────────────────────────────────────────────────────
+# Type ClusterIP : accessible uniquement à l'intérieur du cluster.
+# Le Backend s'y connecte via "mongo-service:27017"
+# ─────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service
+  namespace: portfolio
+  labels:
+    app: mongo
+spec:
+  selector:
+    app: mongo
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+  type: ClusterIP
+
+---
+# ─────────────────────────────────────────────────────────────
+# SERVICE MONGODB HEADLESS — requis par le StatefulSet
+# ─────────────────────────────────────────────────────────────
+# clusterIP: None = headless. Donne un nom DNS stable et unique
+# à chaque Pod du StatefulSet :
+#   mongo-0.mongo-headless.portfolio.svc.cluster.local
+# ─────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-headless
+  namespace: portfolio
+  labels:
+    app: mongo
+spec:
+  clusterIP: None
+  selector:
+    app: mongo
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+
+---
+# ─────────────────────────────────────────────────────────────
+# SERVICE BACKEND — interne au cluster
+# ─────────────────────────────────────────────────────────────
+# Type ClusterIP : accessible uniquement à l'intérieur du cluster.
+# Le Frontend (Nginx) s'y connecte via "backend-service:5000"
+# ─────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: portfolio
+  labels:
+    app: backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP
+
+---
+# ─────────────────────────────────────────────────────────────
+# SERVICE FRONTEND — exposé vers l'extérieur
+# ─────────────────────────────────────────────────────────────
+# Type NodePort : accessible depuis ta machine via localhost:30080
+# Equivalent du "ports: 8080:80" dans ton docker-compose.yaml
+# ─────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: portfolio
+  labels:
+    app: frontend
+spec:
+  selector:
+    app: frontend
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080

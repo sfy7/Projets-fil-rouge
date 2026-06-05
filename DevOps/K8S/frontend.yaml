@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────
+# Deployment Frontend
+# Image : sfy7/portfolio-frontend  (ton Docker Hub)
+# Le tag est mis à jour par Jenkins via :
+#   kubectl set image ... frontend=sfy7/portfolio-frontend:${BUILD_NUMBER}
+# ─────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: portfolio
+  labels:
+    app: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          # Jenkins remplace "latest" par le vrai tag au moment du déploiement
+          image: sfy7/portfolio-frontend:latest
+          imagePullPolicy: Always   # Toujours récupérer la dernière version depuis Docker Hub
+          ports:
+            - containerPort: 80
+          # Même healthcheck que dans ton docker-compose.yaml
+          # pidof nginx || exit 1
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"

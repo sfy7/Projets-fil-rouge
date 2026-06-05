@@ -105,16 +105,16 @@ pipeline {
                 dir('DevOps') {
                     sh '''
                         # ── Namespace ──
-                        kubectl apply -f k8s/Base/namespace.yaml
+                        kubectl apply -f K8s/Base/namespace.yaml
 
                         # ── ConfigMap + Secret ──
-                        kubectl apply -f k8s/Base/configmap-and-secret.yaml
+                        kubectl apply -f K8s/Base/configmap-and-secret.yaml
 
                         # ── Services (tous regroupés) ──
-                        kubectl apply -f k8s/services.yaml
+                        kubectl apply -f K8s/services.yaml
 
                         # ── MongoDB StatefulSet ──
-                        kubectl apply -f k8s/mongodb.yaml
+                        kubectl apply -f K8s/mongodb.yaml
 
                         # ── Attendre que MongoDB soit prêt ──
                         echo "⏳ Attente de MongoDB..."
@@ -122,7 +122,7 @@ pipeline {
                             -n $K8S_NAMESPACE --timeout=120s
 
                         # ── Backend ──
-                        kubectl apply -f k8s/backend.yaml
+                        kubectl apply -f K8s/backend.yaml
 
                         kubectl set image deployment/backend-deployment \
                             backend=$DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER} \
@@ -133,7 +133,7 @@ pipeline {
                             -n $K8S_NAMESPACE --timeout=120s
 
                         # ── Frontend ──
-                        kubectl apply -f k8s/frontend.yaml
+                        kubectl apply -f K8s/frontend.yaml
 
                         kubectl set image deployment/frontend-deployment \
                             frontend=$DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER} \

@@ -1,0 +1,60 @@
+# StatefulSet MongoDB — stockage persistant des données de l'application
+# Les données survivent aux redémarrages grâce au volume mongo-data-mongo-0
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  namespace: portfolio
+  labels:
+    app: mongo
+spec:
+  serviceName: mongo-headless  # service headless requis par le StatefulSet
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:7
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_DATABASE
+              value: "portfolio"
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db  # chemin de stockage MongoDB dans le conteneur
+          # vérifie que MongoDB est prêt avant d'accepter du trafic
+          readinessProbe:
+            exec:
+              command:
+                - mongosh
+                - --eval
+                - "db.runCommand({ ping: 1 })"
+            initialDelaySeconds: 20  # attend 20s avant le 1er check
+            periodSeconds: 10        # vérifie toutes les 10s
+            timeoutSeconds: 5        # abandon si pas de réponse en 5s
+            failureThreshold: 6      # 6 échecs → Pod NotReady
+          resources:
+            requests:          # garanti par Kubernetes
+              memory: "256Mi"
+              cpu: "250m"
+            limits:            # maximum autorisé
+              memory: "512Mi"
+              cpu: "500m"
+  # crée automatiquement un PVC dédié par Pod : mongo-data-mongo-0
+  # si le Pod redémarre, il retrouve ses données intactes
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi

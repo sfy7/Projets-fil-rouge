@@ -192,7 +192,7 @@ Frontend : ${env.DOCKHUB_USER}/${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER} pushed 
 [Kubernetes]
 Namespace : portfolio
 Pods      : kubectl get pods -n portfolio
-Frontend  : http://localhost:30080
+Frontend  : http://192.168.49.2:30080
 
 [Console]
 ${env.BUILD_URL}console

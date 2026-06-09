@@ -108,7 +108,7 @@ pipeline {
                 dir("${TF_DIR}") {
                         sh '''
                             # Initialise Terraform (télécharge le provider Kubernetes)
-                            terraform init
+                            terraform init -input=false
 
                             # Affiche le plan de déploiement avec le tag du build actuel
                             terraform plan \

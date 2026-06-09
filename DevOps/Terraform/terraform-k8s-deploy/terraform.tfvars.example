@@ -1,0 +1,27 @@
+# ══════════════════════════════════════════════════════════════════════
+# terraform.tfvars.example
+# ══════════════════════════════════════════════════════════════════════
+# Kubernetes
+kubeconfig_path = "~/.kube/config"
+kube_context    = "minikube"
+namespace       = "my-namespace"
+
+# Docker Hub (remplace par ton username)
+docker_hub_user     = "your-dockerhub-username"
+backend_image_name  = "my-backend"
+frontend_image_name = "my-frontend"
+image_tag           = "latest"
+
+# App
+node_env            = "production"
+app_port            = "5000"
+mongo_uri           = "mongodb://mongo-service:27017/mydatabase"
+cors_origin         = "http://localhost:30080"
+frontend_nodeport   = 30080
+
+# ⚠️  Secret — ne jamais commiter cette valeur réelle sur Git !
+mongo_root_password = "CHANGE_ME"
+
+# Réplicas
+backend_replicas  = 2
+frontend_replicas = 2

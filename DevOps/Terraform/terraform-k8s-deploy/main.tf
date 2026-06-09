@@ -69,7 +69,21 @@ module "configmap" {
 }
 
 # ──────────────────────────────────────────────────────────────────────
-# MODULE 3 : Deployments
+# MODULE 3 : Services
+# Expose les déploiements pour qu'ils communiquent entre eux
+# et soient accessibles depuis l'extérieur
+# ──────────────────────────────────────────────────────────────────────
+module "services" {
+  source = "./modules/services"
+
+  namespace = var.namespace
+  nodeport  = var.frontend_nodeport
+
+  depends_on = [module.deployments]
+}
+
+# ──────────────────────────────────────────────────────────────────────
+# MODULE 4 : Deployments
 # Déploie MongoDB, Backend et Frontend
 # ──────────────────────────────────────────────────────────────────────
 module "deployments" {
@@ -86,16 +100,4 @@ module "deployments" {
   depends_on = [module.configmap]
 }
 
-# ──────────────────────────────────────────────────────────────────────
-# MODULE 4 : Services
-# Expose les déploiements pour qu'ils communiquent entre eux
-# et soient accessibles depuis l'extérieur
-# ──────────────────────────────────────────────────────────────────────
-module "services" {
-  source = "./modules/services"
 
-  namespace = var.namespace
-  nodeport  = var.frontend_nodeport
-
-  depends_on = [module.deployments]
-}

@@ -7,6 +7,11 @@ output "namespace" {
   value       = module.namespace.namespace_name
 }
 
+output "mongodb_name" {
+  description = "Nom du StatefulSet MongoDB"
+  value       = module.mongodb.mongodb_name
+}
+
 output "frontend_url" {
   description = "URL d'accès au frontend (avec Minikube)"
   value       = "http://$(minikube ip):${var.frontend_nodeport}"

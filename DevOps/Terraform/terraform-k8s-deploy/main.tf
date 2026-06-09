@@ -79,12 +79,22 @@ module "services" {
   namespace = var.namespace
   nodeport  = var.frontend_nodeport
 
-  depends_on = [module.deployments]
+  depends_on = [module.namespace]
+}
+
+
+# ──────────────────────────────────────────────────────────────────────
+# MODULE 4 : MongoDB
+# ──────────────────────────────────────────────────────────────────────
+module "mongodb" {
+  source     = "./modules/mongodb"
+  namespace  = var.namespace
+  depends_on = [module.services]
 }
 
 # ──────────────────────────────────────────────────────────────────────
-# MODULE 4 : Deployments
-# Déploie MongoDB, Backend et Frontend
+# MODULE 5 : Deployments
+# Déploie Backend et Frontend
 # ──────────────────────────────────────────────────────────────────────
 module "deployments" {
   source = "./modules/deployments"
@@ -97,7 +107,7 @@ module "deployments" {
   configmap_name    = module.configmap.configmap_name
 
   # Le ConfigMap doit exister avant les déploiements
-  depends_on = [module.configmap]
+  depends_on = [module.mongodb, module.configmap]
 }
 
 

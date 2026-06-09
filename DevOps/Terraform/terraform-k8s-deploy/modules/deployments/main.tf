@@ -36,125 +36,7 @@ variable "configmap_name" {
 }
 
 # ══════════════════════════════════════════════════════════════════════
-# 1. MONGODB — StatefulSet
-#
-# StatefulSet (et non Deployment) car MongoDB a besoin :
-#   - d'un nom de pod stable (mongo-0, mongo-1...)
-#   - d'un volume persistant dédié par pod (les données survivent aux redémarrages)
-# ══════════════════════════════════════════════════════════════════════
-resource "kubernetes_stateful_set" "mongodb" {
-  metadata {
-    name      = "mongo"
-    namespace = var.namespace
-    labels = {
-      app = "mongo"
-    }
-  }
-
-  spec {
-    service_name = "mongo-headless" # Service headless requis pour les DNS stables des pods
-    replicas     = 1
-
-    selector {
-      match_labels = {
-        app = "mongo"
-      }
-    }
-
-    template {
-      metadata {
-        labels = {
-          app = "mongo"
-        }
-      }
-
-      spec {
-        container {
-          name  = "mongo"
-          image = "mongo:7"
-
-          port {
-            container_port = 27017 # Port MongoDB par défaut
-          }
-
-          env {
-            name  = "MONGO_INITDB_DATABASE"
-            value = "portfolio" # Crée la base "portfolio" au premier démarrage
-          }
-
-          # Monte le volume persistant dans le container
-          volume_mount {
-            name       = "mongo-data"
-            mount_path = "/data/db" # Dossier de données MongoDB
-          }
-
-          resources {
-            requests = {
-              memory = "256Mi" # Mémoire minimale garantie au pod
-              cpu    = "250m"  # 250 millicores = 0.25 CPU
-            }
-            limits = {
-              memory = "512Mi" # Mémoire maximale autorisée
-              cpu    = "500m"
-            }
-          }
-
-          # readiness_probe : Kubernetes envoie du trafic au pod seulement quand cette probe réussit
-          readiness_probe {
-            exec {
-              command = [
-                "mongosh",
-                "--quiet",
-                "--eval",
-                "db.adminCommand('ping').ok || quit(1)"
-              ]
-            }
-            initial_delay_seconds = 30 # Attend 30s avant le 1er check (MongoDB démarre lentement)
-            period_seconds        = 15
-            timeout_seconds       = 15
-            failure_threshold     = 6
-          }
-
-          # liveness_probe : Kubernetes redémarre le pod si cette probe échoue
-          liveness_probe {
-            exec {
-              command = [
-                "mongosh",
-                "--quiet",
-                "--eval",
-                "db.adminCommand('ping').ok || quit(1)"
-              ]
-            }
-            initial_delay_seconds = 60
-            period_seconds        = 30
-            timeout_seconds       = 15
-            failure_threshold     = 3
-          }
-        }
-      }
-    }
-
-    # Crée automatiquement un PersistentVolumeClaim pour chaque pod MongoDB
-    volume_claim_template {
-      metadata {
-        name = "mongo-data"
-      }
-
-      spec {
-        access_modes = ["ReadWriteOnce"] # Un seul pod peut écrire à la fois
-
-        resources {
-          requests = {
-            storage = "1Gi"
-          }
-        }
-      }
-    }
-  }
-}
-
-# ══════════════════════════════════════════════════════════════════════
-# 2. BACKEND — Deployment Node.js
+# 1. BACKEND — Deployment Node.js
 #
 # Deployment (et non StatefulSet) car le backend est stateless :
 # chaque pod est identique, pas besoin de nom stable ni de volume dédié.
@@ -275,7 +157,7 @@ resource "kubernetes_deployment" "backend" {
 }
 
 # ══════════════════════════════════════════════════════════════════════
-# 3. FRONTEND — Deployment React/Nginx
+# 2. FRONTEND — Deployment React/Nginx
 #
 # Nginx sert les fichiers statiques buildés (npm run build).
 # Totalement stateless → simple Deployment suffit.
@@ -350,10 +232,7 @@ resource "kubernetes_deployment" "frontend" {
   }
 }
 
-# ─── Outputs — valeurs renvoyées au module parent (main.tf) ───────────
-output "mongodb_name" {
-  value = kubernetes_stateful_set.mongodb.metadata[0].name
-}
+# ─── Outputs — valeurs renvoyées au module parent (main.tf) ──────────
 
 output "backend_name" {
   value = kubernetes_deployment.backend.metadata[0].name

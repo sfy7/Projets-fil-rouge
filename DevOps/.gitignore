@@ -1,1 +1,22 @@
 .env
+
+# Répertoire de travail Terraform (providers téléchargés)
+.terraform/
+.terraform.lock.hcl
+
+# Fichier de variables (peut contenir des mots de passe !)
+terraform.tfvars
+*.auto.tfvars
+
+# Fichiers de plan sauvegardés
+*.tfplan
+
+# Logs
+crash.log
+crash.*.log
+
+# Override files (usage local uniquement)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

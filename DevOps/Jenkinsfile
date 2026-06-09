@@ -7,6 +7,9 @@ pipeline {
         DOCKHUB_USER   = "sfy7"
         SCANNER_HOME   = tool 'SonarQube Scanner'
         K8S_NAMESPACE  = "portfolio"
+        // ── Terraform ──────────────────────────────────────────────
+        TF_DIR         = "DevOps/Terraform/terraform-k8s-deploy"
+       
     }
 
     stages {
@@ -69,130 +72,120 @@ pipeline {
         }
 
         // ─────────────────────────────────────────────────────────────
-        // 🚀 Push vers Docker Hub
+        // 🏷️ Tag & Push vers Docker Hub
         // ─────────────────────────────────────────────────────────────
-        stage('Push to Docker Hub') {
+        stage('Push Images') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub_creds',
-                    usernameVariable: 'DOCKHUB_USER_CRED',
-                    passwordVariable: 'DOCKHUB_PASS'
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                        echo "$DOCKHUB_PASS" | docker login -u "$DOCKHUB_USER_CRED" --password-stdin
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
+                        # Tag avec le numéro de build ET latest
+                        docker tag $BACKEND_IMAGE  $DOCKHUB_USER/$BACKEND_IMAGE:$BUILD_NUMBER
                         docker tag $BACKEND_IMAGE  $DOCKHUB_USER/$BACKEND_IMAGE:latest
-                        docker tag $BACKEND_IMAGE  $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}
-                        docker push $DOCKHUB_USER/$BACKEND_IMAGE:latest
-                        docker push $DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER}
-
+                        docker tag $FRONTEND_IMAGE $DOCKHUB_USER/$FRONTEND_IMAGE:$BUILD_NUMBER
                         docker tag $FRONTEND_IMAGE $DOCKHUB_USER/$FRONTEND_IMAGE:latest
-                        docker tag $FRONTEND_IMAGE $DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}
+
+                        docker push $DOCKHUB_USER/$BACKEND_IMAGE:$BUILD_NUMBER
+                        docker push $DOCKHUB_USER/$BACKEND_IMAGE:latest
+                        docker push $DOCKHUB_USER/$FRONTEND_IMAGE:$BUILD_NUMBER
                         docker push $DOCKHUB_USER/$FRONTEND_IMAGE:latest
-                        docker push $DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER}
-
-                        docker logout
                     '''
                 }
             }
         }
 
         // ─────────────────────────────────────────────────────────────
-        // ☸️  Déploiement Kubernetes
+        // 🏗️ Terraform Init & Plan
+        // Prévisualise ce que Terraform va déployer — sans rien modifier
         // ─────────────────────────────────────────────────────────────
-        stage('Deploy to Kubernetes') {
+        stage('Terraform Plan') {
             steps {
-                dir('DevOps') {
-                    sh '''
-                        # ── Namespace ──
-                        kubectl apply -f K8s/Base/namespace.yaml
+                dir("${TF_DIR}") {
+                        sh '''
+                            # Initialise Terraform (télécharge le provider Kubernetes)
+                            terraform init
 
-                        # ── ConfigMap + Secret ──
-                        kubectl apply -f K8s/Base/configmap-and-secret.yaml
-
-                        # ── Services (tous regroupés) ──
-                        kubectl apply -f K8s/services.yaml
-
-                        # ── MongoDB : apply uniquement si pas déjà prêt ──
-                        MONGO_READY=$(kubectl get statefulset/mongo -n $K8S_NAMESPACE \
-                            -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
-                        if [ "$MONGO_READY" = "1" ]; then
-                            echo "✅ MongoDB déjà prêt, apply ignoré"
-                        else
-                            echo "⏳ Déploiement de MongoDB..."
-                            kubectl apply -f K8s/mongodb.yaml
-                            kubectl rollout status statefulset/mongo \
-                                -n $K8S_NAMESPACE --timeout=300s
-                        fi
-
-                        # ── Backend ──
-                        kubectl apply -f K8s/backend.yaml
-                        kubectl set image deployment/backend-deployment \
-                            backend=$DOCKHUB_USER/$BACKEND_IMAGE:${BUILD_NUMBER} \
-                            -n $K8S_NAMESPACE
-                        echo "⏳ Attente du Backend..."
-                        kubectl rollout status deployment/backend-deployment \
-                            -n $K8S_NAMESPACE --timeout=300s
-
-                        # ── Frontend ──
-                        kubectl apply -f K8s/frontend.yaml
-                        kubectl set image deployment/frontend-deployment \
-                            frontend=$DOCKHUB_USER/$FRONTEND_IMAGE:${BUILD_NUMBER} \
-                            -n $K8S_NAMESPACE
-                        echo "⏳ Attente du Frontend..."
-                        kubectl rollout status deployment/frontend-deployment \
-                            -n $K8S_NAMESPACE --timeout=300s
-                    '''
+                            # Affiche le plan de déploiement avec le tag du build actuel
+                            terraform plan \
+                                -var="image_tag=${BUILD_NUMBER}" \
+                                -out=tfplan
+                        '''
                 }
             }
         }
 
         // ─────────────────────────────────────────────────────────────
-        // 🔎 Vérification
+        // 🚀 Terraform Apply
+        // Déploie l'application sur le cluster Kubernetes
+        // Remplace les anciens : kubectl apply -f K8s/*.yaml
+        //                        kubectl set image deployment/...
         // ─────────────────────────────────────────────────────────────
-        
+        stage('Terraform Apply') {
+            steps {
+                dir("${TF_DIR}") {
+                        sh '''
+                            # Applique le plan sauvegardé (-auto-approve = pas de prompt "yes")
+                            terraform apply -auto-approve tfplan
+                        '''
+                }
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // ✅ Vérification du déploiement
+        // ─────────────────────────────────────────────────────────────
         stage('Verify Deployment') {
             steps {
                 sh '''
-                    echo "=== Pods ==="
-                    kubectl get pods -n portfolio
+                    echo "=== Pods en cours ==="
+                    kubectl get pods -n $K8S_NAMESPACE
+
                     echo ""
                     echo "=== Services ==="
-                    kubectl get services -n portfolio
+                    kubectl get services -n $K8S_NAMESPACE
+
                     echo ""
-                    echo "=== URL Frontend ==="
-                    NODEPORT=$(kubectl get svc frontend-service -n portfolio -o jsonpath='{.spec.ports[0].nodePort}')
-                    NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[0].address}')
-                    echo "Frontend accessible sur: http://${NODE_IP}:${NODEPORT}"
+                    echo "=== Attente que les pods soient Ready ==="
+                    kubectl rollout status deployment/backend-deployment  -n $K8S_NAMESPACE --timeout=120s
+                    kubectl rollout status deployment/frontend-deployment -n $K8S_NAMESPACE --timeout=120s
                 '''
             }
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // Post-build : notifications email
+    // ─────────────────────────────────────────────────────────────────
     post {
-
         success {
-            echo 'Déploiement Kubernetes réussi ✅'
             emailext (
                 subject: "[Jenkins] Build #${env.BUILD_NUMBER} — SUCCESS ✅",
                 body: """Pipeline SUCCESS ✅
 
 Job      : ${env.JOB_NAME}
 Build    : #${env.BUILD_NUMBER}
-Duration : ${currentBuild.durationString.replace(' and counting', '')}
+Duration : ${currentBuild.durationString}
 
 [Quality]
 SonarQube : PASSED ✅
 Report    : http://localhost:9000/dashboard?id=fullStack_portfolio
 
 [Artifacts]
-Backend  : ${env.DOCKHUB_USER}/${env.BACKEND_IMAGE}:${env.BUILD_NUMBER} pushed to Docker Hub
-Frontend : ${env.DOCKHUB_USER}/${env.FRONTEND_IMAGE}:${env.BUILD_NUMBER} pushed to Docker Hub
+Backend  : ${env.DOCKHUB_USER}/portfolio-backend:${env.BUILD_NUMBER} pushed to Docker Hub
+Frontend : ${env.DOCKHUB_USER}/portfolio-frontend:${env.BUILD_NUMBER} pushed to Docker Hub
+
+[Terraform]
+Déploiement effectué via Terraform ✅
+Image tag : ${env.BUILD_NUMBER}
 
 [Kubernetes]
-Namespace : portfolio
 Pods      : kubectl get pods -n portfolio
-Frontend  : http://192.168.49.2:30080
+Frontend  : http://$(minikube ip):30080
 
 [Console]
 ${env.BUILD_URL}console
@@ -203,6 +196,8 @@ ${env.BUILD_URL}console
 
         failure {
             echo 'Pipeline échoué ❌ — Rollback en cours...'
+            // Rollback via Terraform : redéploie avec le tag précédent
+            // (ou via kubectl en dernier recours)
             sh '''
                 kubectl rollout undo deployment/backend-deployment  -n portfolio || true
                 kubectl rollout undo deployment/frontend-deployment -n portfolio || true
@@ -216,9 +211,6 @@ Build    : #${env.BUILD_NUMBER}
 Duration : ${currentBuild.durationString}
 
 Stage en échec : ${env.STAGE_NAME}
-
-[Quality]
-SonarQube : http://localhost:9000/dashboard?id=fullStack_portfolio
 
 [Kubernetes]
 Rollback automatique effectué vers la version précédente.

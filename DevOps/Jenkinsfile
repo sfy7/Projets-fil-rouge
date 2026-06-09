@@ -185,7 +185,7 @@ Image tag : ${env.BUILD_NUMBER}
 
 [Kubernetes]
 Pods      : kubectl get pods -n portfolio
-Frontend  : http://$(minikube ip):30080
+Frontend  : http://\$(minikube ip):30080
 
 [Console]
 ${env.BUILD_URL}console

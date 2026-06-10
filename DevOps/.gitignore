@@ -1,5 +1,11 @@
 .env
 
+# State Terraform (contient l'état de mon infrastructure)
+# ⚠️ En équipe : stocker sur S3, pas sur Git
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
 # Répertoire de travail Terraform (providers téléchargés)
 .terraform/
 .terraform.lock.hcl
@@ -9,7 +15,7 @@ terraform.tfvars
 *.auto.tfvars
 
 # Fichiers de plan sauvegardés
-*.tfplan
+*tfplan
 
 # Logs
 crash.log

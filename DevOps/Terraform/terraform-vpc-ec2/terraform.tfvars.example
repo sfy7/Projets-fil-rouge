@@ -1,0 +1,18 @@
+# ══════════════════════════════════════════════════════════════════════
+# terraform.tfvars.example — Modèle de configuration
+#
+# Ce fichier est un exemple versionné sur Git.
+# Il montre la structure attendue sans contenir de vraies valeurs.
+#
+# 👉 Pour l'utiliser :
+#    cp terraform.tfvars.example terraform.tfvars
+#    puis remplis terraform.tfvars avec tes vraies valeurs.
+#
+# ⚠️  Ne jamais commiter terraform.tfvars (il est dans .gitignore)
+# ══════════════════════════════════════════════════════════════════════
+
+aws_region    = "us-west-2"     # Région AWS : us-west-2, eu-west-1, us-east-1...
+projet        = "mon-projet"    # Préfixe pour nommer les ressources AWS
+vpc_cidr      = "mon-vpc_cidr"  # Plage d'IPs du VPC
+subnet_cidr   = "mon subnet_cidr"  # Plage d'IPs du subnet public
+instance_type = "t3.micro"     # Free Tier AWS

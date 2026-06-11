@@ -84,6 +84,12 @@ variable "frontend_nodeport" {
   default     = 30080
 }
 
+variable "frontend_service_type" {
+  description = "Type de service pour le frontend (NodePort pour local, LoadBalancer pour EKS)"
+  type        = string
+  default     = "NodePort"
+}
+
 # ─── Réplicas ─────────────────────────────────────────────────────────
 variable "backend_replicas" {
   description = "Nombre de pods backend"

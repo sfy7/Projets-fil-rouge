@@ -76,8 +76,9 @@ module "configmap" {
 module "services" {
   source = "./modules/services"
 
-  namespace = var.namespace
-  nodeport  = var.frontend_nodeport
+  namespace             = var.namespace
+  nodeport              = var.frontend_nodeport
+  frontend_service_type = var.frontend_service_type
 
   depends_on = [module.namespace]
 }

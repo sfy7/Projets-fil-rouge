@@ -18,6 +18,11 @@ variable "nodeport" {
   default = 30080
 }
 
+variable "frontend_service_type" {
+  type    = string
+  default = "NodePort"
+}
+
 # ──────────────────────────────────────────────────────────────────────
 # SERVICE 1 : MongoDB ClusterIP
 # Accessible uniquement à l'intérieur du cluster
@@ -120,13 +125,13 @@ resource "kubernetes_service" "frontend" {
     selector = {
       app = "frontend"
     }
-    type = "NodePort"
+    type = var.frontend_service_type
 
     port {
       protocol    = "TCP"
       port        = 80
       target_port = 80
-      node_port   = var.nodeport # 30080 par défaut
+      node_port   = var.frontend_service_type == "NodePort" ? var.nodeport : null
     }
   }
 }
@@ -134,7 +139,12 @@ resource "kubernetes_service" "frontend" {
 # ─── Outputs ──────────────────────────────────────────────────────────
 output "frontend_nodeport" {
   description = "Le NodePort du frontend (accès externe)"
-  value       = var.nodeport
+  value       = var.frontend_service_type == "NodePort" ? var.nodeport : null
+}
+
+output "frontend_lb_hostname" {
+  description = "Hostname du LoadBalancer (EKS uniquement)"
+  value       = var.frontend_service_type == "LoadBalancer" ? try(kubernetes_service.frontend.status[0].load_balancer[0].ingress[0].hostname, "") : ""
 }
 
 output "backend_service_name" {

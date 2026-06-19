@@ -1,0 +1,145 @@
+# =============================================================================
+# PROMETHEUS - Configuration principale
+# =============================================================================
+# Modèle de données : métriques time-series (metric_name{labels} value timestamp)
+# Scrape interval : fréquence de collecte des métriques par target
+# =============================================================================
+
+global:
+  scrape_interval: 15s        # Collecte toutes les 15s par défaut
+  evaluation_interval: 15s    # Évaluation des règles d'alerte toutes les 15s
+  scrape_timeout: 10s
+
+  external_labels:
+    cluster: 'portfolio-local'
+    environment: 'development'
+
+# Fichiers de règles d'alertes
+rule_files:
+  - "/etc/prometheus/alerts/*.yml"
+
+# Connexion vers Alertmanager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# =============================================================================
+# SCRAPE CONFIGS - Définition des targets (endpoints à surveiller)
+# =============================================================================
+scrape_configs:
+
+  # --------------------------------------------------------------------------
+  # 1. PROMETHEUS (auto-monitoring)
+  # --------------------------------------------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # --------------------------------------------------------------------------
+  # 2. NODE EXPORTER - Métriques système (CPU, RAM, Disque, Réseau)
+  # --------------------------------------------------------------------------
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'system'
+    # Métriques clés : node_cpu_seconds_total, node_memory_MemAvailable_bytes,
+    # node_filesystem_avail_bytes, node_network_receive_bytes_total
+
+  # --------------------------------------------------------------------------
+  # 3. cADVISOR - Métriques containers Docker
+  # --------------------------------------------------------------------------
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: 'containers'
+    # Métriques clés : container_cpu_usage_seconds_total,
+    # container_memory_usage_bytes, container_network_receive_bytes_total
+
+  # --------------------------------------------------------------------------
+  # 4. BACKEND Express.js - Métriques applicatives
+  # --------------------------------------------------------------------------
+  - job_name: 'backend'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['backend:5000']
+        labels:
+          service: 'backend'
+          app: 'portfolio-api'
+    # Métriques custom : http_requests_total, http_request_duration_seconds,
+    # nodejs_heap_size_used_bytes, mongodb_connections_active
+
+  # --------------------------------------------------------------------------
+  # 5. MONGODB EXPORTER - Métriques base de données
+  # --------------------------------------------------------------------------
+  - job_name: 'mongodb'
+    static_configs:
+      - targets: ['mongodb-exporter:9216']
+        labels:
+          service: 'database'
+    # Métriques clés : mongodb_connections, mongodb_op_counters_total,
+    # mongodb_memory_usage_bytes
+
+  # --------------------------------------------------------------------------
+  # 6. JENKINS - Métriques CI/CD
+  # --------------------------------------------------------------------------
+  - job_name: 'jenkins'
+    metrics_path: /prometheus/
+    scheme: http
+    static_configs:
+      - targets: ['host.docker.internal:8081']
+        labels:
+          service: 'jenkins'
+          ci: 'pipeline'
+    # Métriques clés : jenkins_builds_total, jenkins_build_duration,
+    # jenkins_queue_size, jenkins_executors_available
+    # Prérequis : plugin "Prometheus Metrics" installé dans Jenkins
+
+  # --------------------------------------------------------------------------
+  # 8. BLACKBOX EXPORTER - Probes HTTP (disponibilité endpoints)
+  # --------------------------------------------------------------------------
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://frontend:80
+          - http://backend:5000/api/projets
+          - http://sonarqube:9000
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # --------------------------------------------------------------------------
+  # 9. KUBE-STATE-METRICS - Métriques cluster Kubernetes (Minikube)
+  # --------------------------------------------------------------------------
+  # L'IP Minikube est récupérée via : minikube ip
+  # kube-state-metrics tourne dans Minikube et est exposé via NodePort 30080
+  # Remplacer MINIKUBE_IP par le résultat de : minikube ip
+  - job_name: 'kube-state-metrics'
+    static_configs:
+      - targets: ['host.docker.internal:30081']
+        labels:
+          service: 'kubernetes'
+          cluster: 'minikube'
+
+  # --------------------------------------------------------------------------
+  # 10. NODE EXPORTER KUBERNETES - Métriques noeud Minikube
+  # --------------------------------------------------------------------------
+  # Remplacer MINIKUBE_IP par le résultat de : minikube ip
+  - job_name: 'node-exporter-k8s'
+    static_configs:
+      - targets: ['host.docker.internal:9101']
+        labels:
+          service: 'kubernetes-node'
+          cluster: 'minikube'

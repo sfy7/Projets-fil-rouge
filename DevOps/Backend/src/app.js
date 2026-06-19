@@ -8,6 +8,7 @@ const cors = require('cors');
 const connectDB = require('./config/connectdb');
 const projetRoutes = require('./routes/routes');
 const { logger, notFound, errorHandler } = require('./middleware/middleware');
+const { metricsMiddleware, metricsEndpoint } = require('./middleware/metrics');
 
 // ─── Connexion à MongoDB ─────────────────────────────────────────────────────
 connectDB();
@@ -25,6 +26,10 @@ app.use(express.json({ limit: '10mb' })); // limit augmentée pour les images ba
 
 // Parse les données URL-encodées
 app.use(express.urlencoded({ extended: true }));
+
+// Métriques Prometheus
+app.use(metricsMiddleware);
+app.get('/metrics', metricsEndpoint);
 
 // Logger
 app.use(logger);

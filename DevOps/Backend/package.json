@@ -9,12 +9,12 @@
     "seed": "node src/config/seeder.js",
     "seed:destroy": "node src/config/seeder.js -d"
   },
-  
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "mongoose": "^8.0.3"
+    "mongoose": "^8.0.3",
+    "prom-client": "^15.1.3"
   },
   "devDependencies": {
     "jest": "^29.7.0",

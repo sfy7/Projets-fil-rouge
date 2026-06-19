@@ -1,0 +1,88 @@
+{
+  "description": "Monitoring containers Docker - cAdvisor",
+  "editable": true,
+  "panels": [
+    {
+      "title": "CPU par Container",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(container_cpu_usage_seconds_total{name!=\"\",name!~\"POD|.*pause.*\"}[5m]) * 100",
+          "legendFormat": "{{ name }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent" } }
+    },
+    {
+      "title": "Mémoire par Container",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name!=\"\",name!~\"POD|.*pause.*\"}",
+          "legendFormat": "{{ name }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "title": "Réseau RX par Container",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(container_network_receive_bytes_total{name!=\"\",name!~\"POD|.*pause.*\"}[5m])",
+          "legendFormat": "↓ {{ name }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps" } }
+    },
+    {
+      "title": "Réseau TX par Container",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(container_network_transmit_bytes_total{name!=\"\",name!~\"POD|.*pause.*\"}[5m])",
+          "legendFormat": "↑ {{ name }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps" } }
+    },
+    {
+      "title": "Containers Running",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "count(container_last_seen{name!=\"\"})",
+          "legendFormat": "Running",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Mémoire % par Container",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 18, "x": 6, "y": 16 },
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name!=\"\",name!~\"POD|.*pause.*\"} / 1024 / 1024",
+          "legendFormat": "{{ name }} (MB)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "decmbytes" } }
+    }
+  ],
+  "schemaVersion": 38,
+  "tags": ["containers", "docker", "cadvisor"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Containers Docker",
+  "uid": "containers-docker"
+}

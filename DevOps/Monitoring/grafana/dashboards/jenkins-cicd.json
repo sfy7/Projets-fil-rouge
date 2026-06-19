@@ -1,0 +1,129 @@
+{
+  "description": "Jenkins CI/CD - Builds, Queue, Pipelines",
+  "editable": true,
+  "panels": [
+    {
+      "title": "Builds (Success / Failed / Aborted)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "default_jenkins_builds_success_build_count_total",
+          "legendFormat": "Success",
+          "refId": "A"
+        },
+        {
+          "expr": "default_jenkins_builds_failed_build_count_total",
+          "legendFormat": "Failed",
+          "refId": "B"
+        },
+        {
+          "expr": "default_jenkins_builds_aborted_build_count_total",
+          "legendFormat": "Aborted",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "Durée des builds",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "default_jenkins_builds_duration_milliseconds_summary_sum / default_jenkins_builds_duration_milliseconds_summary_count",
+          "legendFormat": "Durée moyenne",
+          "refId": "A"
+        },
+        {
+          "expr": "default_jenkins_builds_last_build_duration_milliseconds",
+          "legendFormat": "Dernier build",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "title": "Queue Length",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "default_jenkins_executors_queue_length",
+          "legendFormat": "Queue",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Executors (Available / Busy)",
+      "type": "bargauge",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+      "targets": [
+        {
+          "expr": "default_jenkins_executors_available",
+          "legendFormat": "Available",
+          "refId": "A"
+        },
+        {
+          "expr": "default_jenkins_executors_busy",
+          "legendFormat": "Busy",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Health Score",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "default_jenkins_builds_health_score",
+          "legendFormat": "Health",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 80 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Last Build Duration",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 8 },
+      "targets": [
+        {
+          "expr": "default_jenkins_builds_last_build_duration_milliseconds",
+          "legendFormat": "{{ job }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    }
+  ],
+  "schemaVersion": 38,
+  "tags": ["jenkins", "cicd", "pipeline"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "Jenkins CI/CD",
+  "uid": "jenkins-cicd"
+}

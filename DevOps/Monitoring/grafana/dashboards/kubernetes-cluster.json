@@ -1,0 +1,154 @@
+{
+  "description": "Kubernetes Cluster - Minikube - Pods, Nodes, Deployments",
+  "editable": true,
+  "panels": [
+    {
+      "title": "Pods par Phase",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(kube_pod_status_phase{namespace=\"portfolio\"}) by (phase)",
+          "legendFormat": "{{ phase }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Pods Info",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 0 },
+      "targets": [
+        {
+          "expr": "kube_pod_info{namespace=\"portfolio\"}",
+          "legendFormat": "{{ pod }}",
+          "refId": "A",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "title": "Restarts par Pod",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "kube_pod_container_status_restarts_total{namespace=\"portfolio\"}",
+          "legendFormat": "{{ pod }} ({{ container }})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Pods Ready",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(kube_pod_status_ready{namespace=\"portfolio\",condition=\"true\"})",
+          "legendFormat": "Ready",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Pods Not Ready",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(kube_pod_status_ready{namespace=\"portfolio\",condition=\"false\"})",
+          "legendFormat": "Not Ready",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Deployments - Ready vs Desired",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_ready{namespace=\"portfolio\"}",
+          "legendFormat": "Ready: {{ deployment }}",
+          "refId": "A"
+        },
+        {
+          "expr": "kube_deployment_spec_replicas{namespace=\"portfolio\"}",
+          "legendFormat": "Desired: {{ deployment }}",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "CPU Requests par Pod",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "kube_pod_container_resource_requests{namespace=\"portfolio\",resource=\"cpu\"}",
+          "legendFormat": "{{ pod }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "title": "Memory Requests par Pod",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "targets": [
+        {
+          "expr": "kube_pod_container_resource_requests{namespace=\"portfolio\",resource=\"memory\"}",
+          "legendFormat": "{{ pod }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "title": "Node Allocatable vs Requested",
+      "type": "bargauge",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "targets": [
+        {
+          "expr": "sum(kube_pod_container_resource_requests{resource=\"cpu\"}) / sum(kube_node_status_allocatable{resource=\"cpu\"}) * 100",
+          "legendFormat": "CPU Requested %",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(kube_pod_container_resource_requests{resource=\"memory\"}) / sum(kube_node_status_allocatable{resource=\"memory\"}) * 100",
+          "legendFormat": "Memory Requested %",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent", "max": 100 } }
+    }
+  ],
+  "schemaVersion": 38,
+  "tags": ["kubernetes", "minikube", "cluster"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Kubernetes Cluster - Minikube",
+  "uid": "kubernetes-cluster"
+}

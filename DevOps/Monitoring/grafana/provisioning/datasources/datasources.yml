@@ -1,0 +1,25 @@
+# =============================================================================
+# GRAFANA - Sources de données (provisioning automatique)
+# =============================================================================
+apiVersion: 1
+
+datasources:
+  # Source principale : Prometheus
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      timeInterval: '15s'
+      httpMethod: POST
+
+  # Alertmanager comme source
+  - name: Alertmanager
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    editable: true
+    jsonData:
+      implementation: prometheus

@@ -1,0 +1,215 @@
+# =============================================================================
+# DOCKER COMPOSE - Stack de Monitoring (Prometheus + Grafana + Exporters)
+# =============================================================================
+# Démarrage :
+#   docker compose -f docker-compose.yaml -f Monitoring/docker-compose.monitoring.yml up -d
+# =============================================================================
+
+services:
+
+  # ==========================================================================
+  # PROMETHEUS - Collecte et stockage des métriques time-series
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'                 # Permet le reload via POST /-/reload
+      - '--web.enable-admin-api'
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./Monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./Monitoring/prometheus/alerts:/etc/prometheus/alerts:ro
+      - prometheus_data:/prometheus
+    networks:
+      - app-network
+      - monitoring
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ==========================================================================
+  # GRAFANA - Visualisation et tableaux de bord
+  # ==========================================================================
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: p@sser123
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/system-overview.json
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./Monitoring/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./Monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./Monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+
+  # ==========================================================================
+  # ALERTMANAGER - Gestion et routage des alertes
+  # ==========================================================================
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /tmp/alertmanager.yml << EOF
+        global:
+          resolve_timeout: 5m
+          smtp_smarthost: '$${SMTP_HOST}:587'
+          smtp_from: '$${SMTP_FROM}'
+          smtp_auth_username: '$${SMTP_USERNAME}'
+          smtp_auth_password: '$${SMTP_PASSWORD}'
+          smtp_require_tls: true
+        route:
+          receiver: 'email'
+          group_by: ['alertname', 'severity']
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 4h
+          routes:
+            - match:
+                severity: critical
+              receiver: 'email'
+              group_wait: 10s
+              repeat_interval: 1h
+        receivers:
+          - name: 'email'
+            email_configs:
+              - to: '$${ALERT_EMAIL_TO}'
+                send_resolved: true
+        inhibit_rules:
+          - source_match:
+              severity: 'critical'
+            target_match:
+              severity: 'warning'
+            equal: ['alertname', 'instance']
+        EOF
+        exec /bin/alertmanager --config.file=/tmp/alertmanager.yml --storage.path=/alertmanager
+    environment:
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO}
+    ports:
+      - '9093:9093'
+    volumes:
+      - alertmanager_data:/alertmanager
+    networks:
+      - monitoring
+
+  # ==========================================================================
+  # NODE EXPORTER - Métriques système hôte (CPU, RAM, Disque, Réseau)
+  # ==========================================================================
+  node-exporter:
+    image: prom/node-exporter:v1.8.1
+    container_name: node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - '9100:9100'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - monitoring
+
+  # ==========================================================================
+  # cADVISOR - Métriques containers Docker
+  # ==========================================================================
+  
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.51.0
+    container_name: cadvisor
+    restart: unless-stopped
+    command:
+      - '--docker_only=true'
+      - '--store_container_labels=true'
+      - '--housekeeping_interval=10s'
+    ports:
+      - '8082:8080'
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /etc/machine-id:/etc/machine-id:ro
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    networks:
+      - app-network
+      - monitoring
+
+  # ==========================================================================
+  # MONGODB EXPORTER - Métriques MongoDB
+  # ==========================================================================
+  mongodb-exporter:
+    image: percona/mongodb_exporter:0.40.0
+    container_name: mongodb-exporter
+    restart: unless-stopped
+    command:
+      - '--mongodb.uri=mongodb://mongo:27017'
+      - '--collect-all'
+      - '--compatible-mode'
+    ports:
+      - '9216:9216'
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+      - monitoring
+
+  # ==========================================================================
+  # BLACKBOX EXPORTER - Probes HTTP/TCP/ICMP (disponibilité)
+  # ==========================================================================
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: blackbox-exporter
+    restart: unless-stopped
+    ports:
+      - '9115:9115'
+    volumes:
+      - ./Monitoring/exporters/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    networks:
+      - app-network
+      - monitoring
+
+# =============================================================================
+# RÉSEAUX
+# =============================================================================
+networks:
+  monitoring:
+    driver: bridge
+  app-network:
+    external: true
+    name: devops_app-network
+
+# =============================================================================
+# VOLUMES PERSISTANTS
+# =============================================================================
+volumes:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:

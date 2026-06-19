@@ -1,0 +1,72 @@
+# =============================================================================
+# ALERTES KUBERNETES - Cluster Minikube, Pods, Nodes
+# =============================================================================
+groups:
+  - name: kubernetes_alerts
+    rules:
+
+      # Pod en CrashLoopBackOff
+      - alert: KubePodCrashLooping
+        expr: rate(kube_pod_container_status_restarts_total[15m]) * 60 * 15 > 3
+        for: 5m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} en CrashLoop"
+          description: "Le pod redémarre en boucle ({{ $value | printf \"%.0f\" }} restarts/15min)."
+
+      # Pod non Ready
+      - alert: KubePodNotReady
+        expr: kube_pod_status_ready{condition="true"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} non Ready"
+          description: "Le pod n'est pas prêt depuis 5 minutes."
+
+      # Deployment sous-répliqué
+      - alert: KubeDeploymentReplicasMismatch
+        expr: kube_deployment_spec_replicas != kube_deployment_status_ready_replicas
+        for: 10m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "Déploiement {{ $labels.namespace }}/{{ $labels.deployment }} sous-répliqué"
+          description: "Replicas souhaités: {{ $labels.spec_replicas }}, Ready: {{ $labels.ready_replicas }}."
+
+      # Node Kubernetes not Ready
+      - alert: KubeNodeNotReady
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Node {{ $labels.node }} NotReady"
+          description: "Le noeud Kubernetes n'est plus prêt."
+
+      # PersistentVolume presque plein
+      - alert: KubePersistentVolumeFullInFourDays
+        expr: predict_linear(kubelet_volume_stats_available_bytes[6h], 4 * 24 * 3600) < 0
+        for: 1h
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "PV {{ $labels.persistentvolumeclaim }} sera plein dans ~4 jours"
+          description: "Prédiction linéaire indique saturation prochaine."
+
+      # CPU pods > 80% de la request
+      - alert: KubePodCpuHigh
+        expr: sum(rate(container_cpu_usage_seconds_total{namespace="portfolio"}[5m])) by (pod) / sum(kube_pod_container_resource_requests{resource="cpu",namespace="portfolio"}) by (pod) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "Pod {{ $labels.pod }} - CPU élevé"
+          description: "Utilisation CPU à {{ $value | printf \"%.0f\" }}% de la request."

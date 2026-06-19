@@ -1,0 +1,50 @@
+# =============================================================================
+# ALERTES SYSTÈME - Node Exporter
+# =============================================================================
+groups:
+  - name: system_alerts
+    rules:
+
+      # CPU > 80% pendant 5 minutes
+      - alert: HighCpuUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "CPU élevé sur {{ $labels.instance }}"
+          description: "Utilisation CPU à {{ $value | printf \"%.1f\" }}% depuis 5 min."
+
+      # RAM > 85%
+      - alert: HighMemoryUsage
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "Mémoire élevée sur {{ $labels.instance }}"
+          description: "Utilisation RAM à {{ $value | printf \"%.1f\" }}%."
+
+      # Disque > 85%
+      - alert: DiskSpaceLow
+        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes) * 100 > 85
+        for: 10m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Espace disque critique sur {{ $labels.instance }}"
+          description: "Partition {{ $labels.mountpoint }} à {{ $value | printf \"%.1f\" }}%."
+
+      # Système down
+      - alert: NodeDown
+        expr: up{job="node-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Node exporter down {{ $labels.instance }}"
+          description: "Le noeud ne répond plus depuis 1 minute."

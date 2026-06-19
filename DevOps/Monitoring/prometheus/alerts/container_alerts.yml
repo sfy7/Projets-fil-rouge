@@ -1,0 +1,50 @@
+# =============================================================================
+# ALERTES CONTAINERS - cAdvisor
+# =============================================================================
+groups:
+  - name: container_alerts
+    rules:
+
+      # Container redémarré plus de 3 fois en 15 min
+      - alert: ContainerHighRestartCount
+        expr: increase(container_restart_count[15m]) > 3
+        for: 0m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "Container {{ $labels.name }} redémarre fréquemment"
+          description: "{{ $value }} redémarrages en 15 min."
+
+      # Container utilise > 80% de sa limite mémoire
+      - alert: ContainerMemoryHigh
+        expr: (container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes{name!=""}) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "Mémoire container élevée {{ $labels.name }}"
+          description: "Utilisation à {{ $value | printf \"%.1f\" }}% de la limite."
+
+      # Container CPU throttling > 25%
+      - alert: ContainerCpuThrottling
+        expr: rate(container_cpu_cfs_throttled_seconds_total[5m]) > 0.25
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "CPU throttling sur {{ $labels.name }}"
+          description: "Le container est limité en CPU."
+
+      # Container down
+      - alert: ContainerDown
+        expr: absent(container_last_seen{name=~"backend|frontend|mongo"})
+        for: 1m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Container critique absent"
+          description: "Un container applicatif n'est plus détecté."

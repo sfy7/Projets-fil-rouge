@@ -1,0 +1,104 @@
+# =============================================================================
+# ALERTES APPLICATION - Backend, Jenkins, SonarQube
+# =============================================================================
+groups:
+  - name: application_alerts
+    rules:
+
+      # ---------- BACKEND ----------
+
+      # Taux d'erreurs HTTP 5xx > 5%
+      - alert: BackendHighErrorRate
+        expr: sum(rate(http_requests_total{job="backend",status=~"5.."}[5m])) / sum(rate(http_requests_total{job="backend"}[5m])) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Taux d'erreurs HTTP 5xx élevé"
+          description: "{{ $value | printf \"%.1f\" }}% des requêtes échouent."
+
+      # Latence P95 > 2s
+      - alert: BackendHighLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="backend"}[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Latence P95 élevée sur le backend"
+          description: "P95 à {{ $value | printf \"%.2f\" }}s."
+
+      # Backend down
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Backend portfolio inaccessible"
+          description: "L'API ne répond plus depuis 1 minute."
+
+      # ---------- JENKINS ----------
+
+      # Queue Jenkins > 5 builds en attente
+      - alert: JenkinsQueueOverloaded
+        expr: jenkins_queue_size_value > 5
+        for: 10m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "File d'attente Jenkins surchargée"
+          description: "{{ $value }} builds en attente depuis 10 min."
+
+      # Jenkins down
+      - alert: JenkinsDown
+        expr: up{job="jenkins"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Jenkins inaccessible"
+          description: "Le serveur CI/CD ne répond plus."
+
+      # ---------- SONARQUBE ----------
+
+      # SonarQube down
+      - alert: SonarQubeDown
+        expr: up{job="sonarqube"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "SonarQube inaccessible"
+          description: "L'analyse de qualité de code est indisponible."
+
+      # ---------- MONGODB ----------
+
+      # Connexions MongoDB > 80% de la limite
+      - alert: MongoDBConnectionsHigh
+        expr: mongodb_connections{state="current"} / mongodb_connections{state="available"} * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Connexions MongoDB élevées"
+          description: "{{ $value | printf \"%.1f\" }}% des connexions utilisées."
+
+      # ---------- DISPONIBILITÉ (Blackbox) ----------
+
+      # Endpoint HTTP down
+      - alert: EndpointDown
+        expr: probe_success{job="blackbox-http"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Endpoint {{ $labels.instance }} inaccessible"
+          description: "Probe HTTP en échec depuis 2 minutes."

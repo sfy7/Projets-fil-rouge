@@ -1,0 +1,145 @@
+{
+  "description": "MongoDB - Connexions, Operations, Memoire",
+  "editable": true,
+  "panels": [
+    {
+      "title": "Connexions actives",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "mongodb_ss_connections{conn_type=\"current\"}",
+          "legendFormat": "Current",
+          "refId": "A"
+        },
+        {
+          "expr": "mongodb_ss_connections{conn_type=\"available\"}",
+          "legendFormat": "Available",
+          "refId": "B"
+        },
+        {
+          "expr": "mongodb_ss_connections{conn_type=\"active\"}",
+          "legendFormat": "Active",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "Operations/sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(mongodb_ss_opcounters[5m])",
+          "legendFormat": "{{ legacy_op_type }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "title": "Memoire utilisee",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "mongodb_ss_mem_resident * 1024 * 1024",
+          "legendFormat": "Resident",
+          "refId": "A"
+        },
+        {
+          "expr": "mongodb_ss_mem_virtual * 1024 * 1024",
+          "legendFormat": "Virtual",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "title": "Network I/O",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "rate(mongodb_ss_network_bytesIn[5m])",
+          "legendFormat": "Bytes In",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(mongodb_ss_network_bytesOut[5m])",
+          "legendFormat": "Bytes Out",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps" } }
+    },
+    {
+      "title": "Documents operations/sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "rate(mongodb_ss_metrics_document[5m])",
+          "legendFormat": "{{ doc_op_type }}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "title": "Curseurs ouverts",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "mongodb_ss_metrics_cursor_open{csr_type=\"total\"}",
+          "legendFormat": "Open Cursors",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Uptime",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 16 },
+      "targets": [
+        {
+          "expr": "mongodb_ss_uptimeMillis / 1000 / 3600",
+          "legendFormat": "Hours",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "h" } }
+    },
+    {
+      "title": "Connexions % utilise",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "targets": [
+        {
+          "expr": "mongodb_ss_connections{conn_type=\"current\"} / ignoring(conn_type) mongodb_ss_connections{conn_type=\"available\"} * 100",
+          "legendFormat": "Usage %",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 60 },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "schemaVersion": 38,
+  "tags": ["mongodb", "database"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "MongoDB",
+  "uid": "mongodb"
+}

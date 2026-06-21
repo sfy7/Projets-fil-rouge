@@ -213,9 +213,10 @@ kubectl get pods -n monitoring
 
 <div align="center">
 
-**Safietou** | Portfolio DevOps
+**Safiétou** | Portfolio DevOps
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com)
+
 [![Email](https://img.shields.io/badge/Email-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:safietou0218@gmail.com)
 
 </div>

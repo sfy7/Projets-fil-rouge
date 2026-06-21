@@ -98,7 +98,7 @@ services:
               severity: 'warning'
             equal: ['alertname', 'instance']
         EOF
-        exec /bin/alertmanager --config.file=/tmp/alertmanager.yml --storage.path=/alertmanager
+        exec /bin/alertmanager --config.file=/tmp/alertmanager.yml --storage.path=/alertmanager --web.external-url=http://localhost:9093
     environment:
       SMTP_HOST: ${SMTP_HOST}
       SMTP_FROM: ${SMTP_FROM}
@@ -136,7 +136,6 @@ services:
   # ==========================================================================
   # cADVISOR - Métriques containers Docker
   # ==========================================================================
-  
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.51.0
     container_name: cadvisor

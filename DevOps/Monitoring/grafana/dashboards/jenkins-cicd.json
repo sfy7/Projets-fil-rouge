@@ -24,6 +24,15 @@
         }
       ],
       "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 20,
+            "pointSize": 5,
+            "showPoints": "auto"
+          }
+        },
         "overrides": [
           {
             "matcher": { "id": "byName", "options": "Success" },

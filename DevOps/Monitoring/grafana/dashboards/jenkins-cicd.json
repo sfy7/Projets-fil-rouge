@@ -8,17 +8,17 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "default_jenkins_builds_success_build_count_total",
+          "expr": "sum(default_jenkins_builds_success_build_count_total)",
           "legendFormat": "Success",
           "refId": "A"
         },
         {
-          "expr": "default_jenkins_builds_failed_build_count_total",
+          "expr": "sum(default_jenkins_builds_failed_build_count_total)",
           "legendFormat": "Failed",
           "refId": "B"
         },
         {
-          "expr": "default_jenkins_builds_aborted_build_count_total",
+          "expr": "sum(default_jenkins_builds_aborted_build_count_total)",
           "legendFormat": "Aborted",
           "refId": "C"
         }

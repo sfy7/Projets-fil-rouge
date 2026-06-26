@@ -132,40 +132,27 @@ pipeline {
         // (c'est notre "Quality Gate" sécurité, comme pour SonarQube)
         // ─────────────────────────────────────────────────────────────
         stage('Trivy - Scan Images') {
-            parallel {
-                stage('Scan Backend Image') {
-                    steps {
-                        dir('DevOps') {
-                            sh '''
-                                mkdir -p trivy-reports
+            steps {
+                dir('DevOps') {
+                    sh '''
+                        mkdir -p trivy-reports
 
-                                trivy image \
-                                    --scanners vuln \
-                                    --severity HIGH,CRITICAL \
-                                    --format table \
-                                    --output trivy-reports/trivy-image-backend.txt \
-                                    --exit-code 1 \
-                                    $BACKEND_IMAGE
-                            '''
-                        }
-                    }
-                }
-                stage('Scan Frontend Image') {
-                    steps {
-                        dir('DevOps') {
-                            sh '''
-                                mkdir -p trivy-reports
+                        trivy image \
+                            --scanners vuln \
+                            --severity HIGH,CRITICAL \
+                            --format table \
+                            --output trivy-reports/trivy-image-backend.txt \
+                            --exit-code 1 \
+                            $BACKEND_IMAGE
 
-                                trivy image \
-                                    --scanners vuln \
-                                    --severity HIGH,CRITICAL \
-                                    --format table \
-                                    --output trivy-reports/trivy-image-frontend.txt \
-                                    --exit-code 1 \
-                                    $FRONTEND_IMAGE
-                            '''
-                        }
-                    }
+                        trivy image \
+                            --scanners vuln \
+                            --severity HIGH,CRITICAL \
+                            --format table \
+                            --output trivy-reports/trivy-image-frontend.txt \
+                            --exit-code 1 \
+                            $FRONTEND_IMAGE
+                    '''
                 }
             }
         }

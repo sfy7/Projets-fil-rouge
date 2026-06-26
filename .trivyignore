@@ -1,0 +1,17 @@
+# ─────────────────────────────────────────────────────────────
+# .trivyignore
+# ─────────────────────────────────────────────────────────────
+# Ce fichier sert à dire à Trivy : "je connais cette alerte,
+# c'est volontaire / un faux positif / accepté pour l'instant,
+# n'en tiens pas compte (et ne fais pas échouer le build)".
+#
+# Une ligne = un identifiant à ignorer.
+#   - CVE-XXXX-XXXXX   -> ignore une vulnérabilité précise
+#   - AVD-XXX-XXXX     -> ignore une mauvaise config précise (Avd = Aqua Vuln DB, IaC)
+#
+# ⚠️ A utiliser avec parcimonie : ce n'est pas une corbeille pour
+# faire taire Trivy, mais un registre des exceptions JUSTIFIÉES.
+#
+# Exemple (décommenter et adapter si besoin) :
+# CVE-2023-12345   # faux positif : version patchée différemment, vérifié le 01/01/2026
+# AVD-DS-0002       # accepté : image "latest" volontaire en environnement de dev local

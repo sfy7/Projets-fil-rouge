@@ -1,5 +1,5 @@
-# Image de base : Node.js 20 sur Alpine Linux 
-FROM node:20-alpine
+# Image de base : Node.js 22 sur Alpine Linux 
+FROM node:22-alpine
 
 # Définit le répertoire de travail dans le conteneur
 # Toutes les commandes suivantes s'exécuteront depuis /app 

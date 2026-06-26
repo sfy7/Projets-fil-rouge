@@ -2,7 +2,7 @@
 # STAGE 1 — BUILD : Compilation de l'application React
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # 'AS builder' nomme cette étape pour la référencer dans le stage 2 
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 

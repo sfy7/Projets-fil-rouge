@@ -26,6 +26,56 @@ pipeline {
         }
 
         // ─────────────────────────────────────────────────────────────
+        // 🛡️ Trivy — Scan du code source (target = Filesystem)
+        // Scanners activés :
+        //   - vuln   : vulnérabilités dans les dépendances (package.json, package-lock.json...)
+        //   - secret : secrets oubliés dans le code (clés API, mots de passe, tokens...)
+        //   - license: licences open-source potentiellement problématiques
+        // ─────────────────────────────────────────────────────────────
+        stage('Trivy - Scan Filesystem') {
+            steps {
+                dir('DevOps') {
+                    sh '''
+                        mkdir -p trivy-reports
+
+                        trivy fs \
+                            --scanners vuln,secret,license \
+                            --severity HIGH,CRITICAL \
+                            --format table \
+                            --output trivy-reports/trivy-fs-report.txt \
+                            --exit-code 0 \
+                            .
+                    '''
+                }
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // 🛡️ Trivy — Scan des fichiers d'infrastructure (target = Config / IaC)
+        // Cherche des MAUVAISES CONFIGURATIONS (pas des CVE) dans :
+        //   - les Dockerfile (Backend/Frontend)
+        //   - les manifestes Kubernetes (K8s/*.yaml)
+        //   - le code Terraform (Terraform/**)
+        // Ex : conteneur lancé en root, absence de limites CPU/RAM, S3 public...
+        // ─────────────────────────────────────────────────────────────
+        stage('Trivy - Scan IaC (Misconfigurations)') {
+            steps {
+                dir('DevOps') {
+                    sh '''
+                        mkdir -p trivy-reports
+
+                        trivy config \
+                            --severity HIGH,CRITICAL \
+                            --format table \
+                            --output trivy-reports/trivy-iac-report.txt \
+                            --exit-code 0 \
+                            .
+                    '''
+                }
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
         // 🔍 Analyse SonarQube
         // ─────────────────────────────────────────────────────────────
         stage('SonarQube Analysis') {
@@ -65,6 +115,55 @@ pipeline {
                     steps {
                         dir('DevOps/Frontend') {
                             sh 'docker build -t $FRONTEND_IMAGE .'
+                        }
+                    }
+                }
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        // 🛡️ Trivy — Scan des images Docker (target = Container Image)
+        // On scanne l'image APRES le build mais AVANT de la pousser sur
+        // Docker Hub : inutile de publier une image vulnérable.
+        // Scanner "vuln" = vulnérabilités connues (CVE) dans :
+        //   - l'OS de base (Alpine/Nginx)
+        //   - les paquets npm installés dans l'image
+        // exit-code 1 = le build ECHOUE si une faille CRITICAL est trouvée
+        // (c'est notre "Quality Gate" sécurité, comme pour SonarQube)
+        // ─────────────────────────────────────────────────────────────
+        stage('Trivy - Scan Images') {
+            parallel {
+                stage('Scan Backend Image') {
+                    steps {
+                        dir('DevOps') {
+                            sh '''
+                                mkdir -p trivy-reports
+
+                                trivy image \
+                                    --scanners vuln \
+                                    --severity HIGH,CRITICAL \
+                                    --format table \
+                                    --output trivy-reports/trivy-image-backend.txt \
+                                    --exit-code 1 \
+                                    $BACKEND_IMAGE
+                            '''
+                        }
+                    }
+                }
+                stage('Scan Frontend Image') {
+                    steps {
+                        dir('DevOps') {
+                            sh '''
+                                mkdir -p trivy-reports
+
+                                trivy image \
+                                    --scanners vuln \
+                                    --severity HIGH,CRITICAL \
+                                    --format table \
+                                    --output trivy-reports/trivy-image-frontend.txt \
+                                    --exit-code 1 \
+                                    $FRONTEND_IMAGE
+                            '''
                         }
                     }
                 }
@@ -156,12 +255,49 @@ pipeline {
                 '''
             }
         }
+
+        // ─────────────────────────────────────────────────────────────
+        // 🛡️ Trivy — Scan du cluster Kubernetes live (target = k8s)
+        // Scanne les ressources déployées dans le namespace portfolio :
+        //   - pods / deployments / statefulsets : vulnérabilités dans les images en cours d'exécution
+        //   - configs : mauvaises pratiques (conteneur root, absence de securityContext, secrets en clair...)
+        //   - rbac    : permissions trop larges sur les ServiceAccounts
+        // Exécuté APRÈS le déploiement pour auditer l'état réel du cluster.
+        // exit-code 0 = non bloquant (audit post-déploiement, pas un gate)
+        // ─────────────────────────────────────────────────────────────
+        stage('Trivy - Scan Kubernetes Cluster') {
+            steps {
+                dir('DevOps') {
+                    sh '''
+                        mkdir -p trivy-reports
+
+                        trivy k8s \
+                            --severity HIGH,CRITICAL \
+                            --scanners vuln,misconfig,secret,rbac \
+                            --format table \
+                            --output trivy-reports/trivy-k8s-report.txt \
+                            --exit-code 0 \
+                            --namespace $K8S_NAMESPACE \
+                            all
+                    '''
+                }
+            }
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────
     // Post-build : notifications email
     // ─────────────────────────────────────────────────────────────────
     post {
+        always {
+            // Archive tous les rapports Trivy (fs, iac, images) quel que soit
+            // le résultat du build, pour pouvoir les consulter dans Jenkins
+            // (menu "Build Artifacts").
+            archiveArtifacts artifacts: 'DevOps/trivy-reports/*.txt', allowEmptyArchive: true
+            // Rapports générés : trivy-fs-report.txt, trivy-iac-report.txt,
+            //                    trivy-image-backend.txt, trivy-image-frontend.txt,
+            //                    trivy-k8s-report.txt
+        }
         success {
             emailext (
                 subject: "[Jenkins] Build #${env.BUILD_NUMBER} — SUCCESS ✅",
@@ -174,6 +310,13 @@ Duration : ${currentBuild.durationString}
 [Quality]
 SonarQube : PASSED ✅
 Report    : http://localhost:9000/dashboard?id=fullStack_portfolio
+
+[Sécurité - Trivy]
+Filesystem (vuln/secret/license) : voir trivy-fs-report.txt
+IaC (Dockerfile/K8s/Terraform)   : voir trivy-iac-report.txt
+Images Docker (CVE)              : AUCUNE faille CRITICAL ✅
+Kubernetes cluster (live audit)  : voir trivy-k8s-report.txt
+Rapports complets dans les artefacts du build Jenkins
 
 [Artifacts]
 Backend  : ${env.DOCKHUB_USER}/portfolio-backend:${env.BUILD_NUMBER} pushed to Docker Hub

@@ -266,8 +266,7 @@ pipeline {
                             --format table \
                             --output trivy-reports/trivy-k8s-report.txt \
                             --exit-code 0 \
-                            --include-namespaces $K8S_NAMESPACE \
-                            all
+                            --include-namespaces $K8S_NAMESPACE 
                     '''
                 }
             }

@@ -264,6 +264,7 @@ pipeline {
                             --severity HIGH,CRITICAL \
                             --scanners vuln,misconfig,secret,rbac \
                             --format table \
+                            --report all \
                             --output trivy-reports/trivy-k8s-report.txt \
                             --exit-code 0 \
                             --include-namespaces $K8S_NAMESPACE 

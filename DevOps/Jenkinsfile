@@ -140,6 +140,7 @@ pipeline {
                         trivy image \
                             --scanners vuln \
                             --severity HIGH,CRITICAL \
+                            --ignorefile .trivyignore \
                             --format table \
                             --output trivy-reports/trivy-image-backend.txt \
                             --exit-code 1 \
@@ -148,6 +149,7 @@ pipeline {
                         trivy image \
                             --scanners vuln \
                             --severity HIGH,CRITICAL \
+                            --ignorefile .trivyignore \
                             --format table \
                             --output trivy-reports/trivy-image-frontend.txt \
                             --exit-code 1 \

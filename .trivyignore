@@ -15,3 +15,7 @@
 # Exemple (décommenter et adapter si besoin) :
 # CVE-2023-12345   # faux positif : version patchée différemment, vérifié le 01/01/2026
 # AVD-DS-0002       # accepté : image "latest" volontaire en environnement de dev local
+
+# CVE dans le npm CLI bundlé dans node:22-alpine (usr/local/lib/node_modules/npm/)
+# Non présent dans le code applicatif (app/node_modules/)
+  CVE-2026-33671

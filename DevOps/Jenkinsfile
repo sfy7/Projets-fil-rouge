@@ -41,8 +41,7 @@ pipeline {
                         trivy fs \
                             --scanners vuln,secret,license \
                             --severity HIGH,CRITICAL \
-                            --format template \
-                            --template "@contrib/html.tpl" \
+                            --format html \
                             --output trivy-reports/trivy-fs-report.html \
                             --exit-code 0 \
                             .
@@ -67,8 +66,7 @@ pipeline {
 
                         trivy config \
                             --severity HIGH,CRITICAL \
-                            --format template \
-                            --template "@contrib/html.tpl" \
+                            --format html \
                             --output trivy-reports/trivy-iac-report.html \
                             --exit-code 0 \
                             .
@@ -143,8 +141,7 @@ pipeline {
                             --scanners vuln \
                             --severity HIGH,CRITICAL \
                             --ignorefile .trivyignore \
-                            --format template \
-                            --template "@contrib/html.tpl" \
+                            --format html \
                             --output trivy-reports/trivy-image-backend.html \
                             --exit-code 1 \
                             $BACKEND_IMAGE
@@ -153,8 +150,7 @@ pipeline {
                             --scanners vuln \
                             --severity HIGH,CRITICAL \
                             --ignorefile .trivyignore \
-                            --format template \
-                            --template "@contrib/html.tpl" \
+                            --format html \
                             --output trivy-reports/trivy-image-frontend.html \
                             --exit-code 1 \
                             $FRONTEND_IMAGE
@@ -267,8 +263,7 @@ pipeline {
                         trivy k8s \
                             --severity HIGH,CRITICAL \
                             --scanners vuln,misconfig,secret,rbac \
-                            --format template \
-                            --template "@contrib/html.tpl" \
+                            --format html \
                             --report all \
                             --output trivy-reports/trivy-k8s-report.html \
                             --exit-code 0 \
@@ -306,10 +301,10 @@ SonarQube : PASSED ✅
 Report    : http://localhost:9000/dashboard?id=fullStack_portfolio
 
 [Sécurité - Trivy]
-Filesystem (vuln/secret/license) : voir trivy-fs-report.txt
-IaC (Dockerfile/K8s/Terraform)   : voir trivy-iac-report.txt
+Filesystem (vuln/secret/license) : voir trivy-fs-report.html
+IaC (Dockerfile/K8s/Terraform)   : voir trivy-iac-report.html
 Images Docker (CVE)              : AUCUNE faille CRITICAL ✅
-Kubernetes cluster (live audit)  : voir trivy-k8s-report.txt
+Kubernetes cluster (live audit)  : voir trivy-k8s-report.html
 Rapports complets dans les artefacts du build Jenkins
 
 [Artifacts]

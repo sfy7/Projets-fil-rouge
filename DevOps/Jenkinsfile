@@ -41,7 +41,8 @@ pipeline {
                         trivy fs \
                             --scanners vuln,secret,license \
                             --severity HIGH,CRITICAL \
-                            --format html \
+                            --format template \
+                            --template "@trivy-html.tpl" \
                             --output trivy-reports/trivy-fs-report.html \
                             --exit-code 0 \
                             .
@@ -66,7 +67,8 @@ pipeline {
 
                         trivy config \
                             --severity HIGH,CRITICAL \
-                            --format html \
+                            --format template \
+                            --template "@trivy-html.tpl" \
                             --output trivy-reports/trivy-iac-report.html \
                             --exit-code 0 \
                             .
@@ -141,7 +143,8 @@ pipeline {
                             --scanners vuln \
                             --severity HIGH,CRITICAL \
                             --ignorefile .trivyignore \
-                            --format html \
+                            --format template \
+                            --template "@trivy-html.tpl" \
                             --output trivy-reports/trivy-image-backend.html \
                             --exit-code 1 \
                             $BACKEND_IMAGE
@@ -150,7 +153,8 @@ pipeline {
                             --scanners vuln \
                             --severity HIGH,CRITICAL \
                             --ignorefile .trivyignore \
-                            --format html \
+                            --format template \
+                            --template "@trivy-html.tpl" \
                             --output trivy-reports/trivy-image-frontend.html \
                             --exit-code 1 \
                             $FRONTEND_IMAGE
@@ -263,7 +267,8 @@ pipeline {
                         trivy k8s \
                             --severity HIGH,CRITICAL \
                             --scanners vuln,misconfig,secret,rbac \
-                            --format html \
+                            --format template \
+                            --template "@trivy-html.tpl" \
                             --report all \
                             --output trivy-reports/trivy-k8s-report.html \
                             --exit-code 0 \

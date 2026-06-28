@@ -41,8 +41,9 @@ pipeline {
                         trivy fs \
                             --scanners vuln,secret,license \
                             --severity HIGH,CRITICAL \
-                            --format table \
-                            --output trivy-reports/trivy-fs-report.txt \
+                            --format template \
+                            --template "@contrib/html.tpl" \
+                            --output trivy-reports/trivy-fs-report.html \
                             --exit-code 0 \
                             .
                     '''
@@ -66,8 +67,9 @@ pipeline {
 
                         trivy config \
                             --severity HIGH,CRITICAL \
-                            --format table \
-                            --output trivy-reports/trivy-iac-report.txt \
+                            --format template \
+                            --template "@contrib/html.tpl" \
+                            --output trivy-reports/trivy-iac-report.html \
                             --exit-code 0 \
                             .
                     '''
@@ -141,8 +143,9 @@ pipeline {
                             --scanners vuln \
                             --severity HIGH,CRITICAL \
                             --ignorefile .trivyignore \
-                            --format table \
-                            --output trivy-reports/trivy-image-backend.txt \
+                            --format template \
+                            --template "@contrib/html.tpl" \
+                            --output trivy-reports/trivy-image-backend.html \
                             --exit-code 1 \
                             $BACKEND_IMAGE
 
@@ -150,8 +153,9 @@ pipeline {
                             --scanners vuln \
                             --severity HIGH,CRITICAL \
                             --ignorefile .trivyignore \
-                            --format table \
-                            --output trivy-reports/trivy-image-frontend.txt \
+                            --format template \
+                            --template "@contrib/html.tpl" \
+                            --output trivy-reports/trivy-image-frontend.html \
                             --exit-code 1 \
                             $FRONTEND_IMAGE
                     '''
@@ -263,11 +267,12 @@ pipeline {
                         trivy k8s \
                             --severity HIGH,CRITICAL \
                             --scanners vuln,misconfig,secret,rbac \
-                            --format table \
+                            --format template \
+                            --template "@contrib/html.tpl" \
                             --report all \
-                            --output trivy-reports/trivy-k8s-report.txt \
+                            --output trivy-reports/trivy-k8s-report.html \
                             --exit-code 0 \
-                            --include-namespaces $K8S_NAMESPACE 
+                            --include-namespaces $K8S_NAMESPACE
                     '''
                 }
             }
@@ -282,7 +287,7 @@ pipeline {
             // Archive tous les rapports Trivy (fs, iac, images) quel que soit
             // le résultat du build, pour pouvoir les consulter dans Jenkins
             // (menu "Build Artifacts").
-            archiveArtifacts artifacts: 'DevOps/trivy-reports/*.txt', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'DevOps/trivy-reports/*.html,DevOps/trivy-reports/*.txt', allowEmptyArchive: true
             // Rapports générés : trivy-fs-report.txt, trivy-iac-report.txt,
             //                    trivy-image-backend.txt, trivy-image-frontend.txt,
             //                    trivy-k8s-report.txt

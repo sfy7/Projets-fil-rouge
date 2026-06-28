@@ -287,6 +287,15 @@ pipeline {
             // le résultat du build, pour pouvoir les consulter dans Jenkins
             // (menu "Build Artifacts").
             archiveArtifacts artifacts: 'DevOps/trivy-reports/*.html,DevOps/trivy-reports/*.txt', allowEmptyArchive: true
+
+            publishHTML(target: [
+                allowMissing: true,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'DevOps/trivy-reports',
+                reportFiles: 'trivy-fs-report.html,trivy-iac-report.html,trivy-image-backend.html,trivy-image-frontend.html',
+                reportName: 'Trivy Security Reports'
+            ])
             // Rapports générés : trivy-fs-report.txt, trivy-iac-report.txt,
             //                    trivy-image-backend.txt, trivy-image-frontend.txt,
             //                    trivy-k8s-report.txt
